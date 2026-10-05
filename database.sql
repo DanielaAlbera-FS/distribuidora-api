@@ -19,6 +19,7 @@ CREATE TABLE proveedores (
   telefono VARCHAR(20),
   email VARCHAR(100),
   direccion VARCHAR(150)
+  CUIL_CUIT VARCHAR (20)
 ) ENGINE=InnoDB;
 
 -- Clientes que realizan pedidos.
@@ -27,7 +28,8 @@ CREATE TABLE clientes (
   nombre VARCHAR(100) NOT NULL,
   telefono VARCHAR(20),
   email VARCHAR(100),
-  direccion VARCHAR(150)
+  direccion VARCHAR(150), 
+  CUIL_CUIT VARCHAR (20)
 ) ENGINE=InnoDB;
 
 -- Personal que registra y atiende los pedidos.
@@ -90,15 +92,15 @@ CREATE TABLE detalle_pedido (
 -- desde 1, por lo que las claves foráneas hacen referencia a ese orden.
 -- ---------------------------------------------------------------------
 
-INSERT INTO proveedores (nombre, telefono, email, direccion) VALUES
-('Distribuidora Andina', '2994111111', 'ventas@andina.example', 'Calle Mitre 123'),
-('Alimentos del Valle', '2994222222', 'contacto@valle.example', 'Av. Roca 456'),
-('Bebidas del Sur', '2994333333', 'info@sur.example', 'Ruta 22 km 10');
+INSERT INTO proveedores (nombre, telefono, email, direccion, CUIL_CUIT) VALUES
+('Distribuidora Andina', '2994111111', 'ventas@andina.example', 'Calle Mitre 123', "1234567890-0"),
+('Alimentos del Valle', '2994222222', 'contacto@valle.example', 'Av. Roca 456',"23456890-1"),
+('Bebidas del Sur', '2994333333', 'info@sur.example', 'Ruta 22 km 10',"1-2345-93838");
 
-INSERT INTO clientes (nombre, telefono, email, direccion) VALUES
-('Kiosco Don Pepe', '2994444444', 'pepe@kiosco.example', 'Calle Belgrano 10'),
-('Almacen La Esquina', '2994555555', 'laesquina@almacen.example', 'Calle Sarmiento 25'),
-('Supermercado Central', '2994666666', 'compras@central.example', 'Av. San Martin 300');
+INSERT INTO clientes (nombre,telefono, email, direccion, CUIL_CUIT) VALUES
+('Kiosco Don Pepe', '2994444444', 'pepe@kiosco.example', 'Calle Belgrano 10',"1234567890-0"),
+('Almacen La Esquina', '2994555555', 'laesquina@almacen.example', 'Calle Sarmiento 25',"1234567890-0"),
+('Supermercado Central', '2994666666', 'compras@central.example', 'Av. San Martin 300',"1234567890-0");
 
 INSERT INTO empleados (nombre, apellido, cargo, email) VALUES
 ('Laura', 'Gomez', 'Vendedora', 'laura@distribuidora.example'),
