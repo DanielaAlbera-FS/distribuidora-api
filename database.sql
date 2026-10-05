@@ -18,7 +18,7 @@ CREATE TABLE proveedores (
   nombre VARCHAR(100) NOT NULL,
   telefono VARCHAR(20),
   email VARCHAR(100),
-  direccion VARCHAR(150)
+  direccion VARCHAR(150),
   CUIL_CUIT VARCHAR (20)
 ) ENGINE=InnoDB;
 
