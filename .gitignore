@@ -1,0 +1,5 @@
+# Dependencias instaladas por npm. Se regeneran con "npm install" a partir del package.json.
+node_modules/
+
+# Archivos de variables de entorno locales (preventivo; el proyecto no los utiliza por ahora).
+.env
