@@ -5,7 +5,8 @@
   "main": "index.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.mjs"
+    "start": "node index.mjs",
+    "start:dev": "nodemon index.mjs"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +15,16 @@
   "dependencies": {
     "express": "^5.2.1",
     "mysql2": "^3.24.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DanielaAlbera-FS/distribuidora-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DanielaAlbera-FS/distribuidora-api/issues"
+  },
+  "homepage": "https://github.com/DanielaAlbera-FS/distribuidora-api#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }
