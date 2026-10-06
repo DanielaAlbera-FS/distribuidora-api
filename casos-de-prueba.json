@@ -1,0 +1,371 @@
+[
+  {
+    "descripcion": "Listar todos los productos con el nombre de su proveedor",
+    "metodo": "GET",
+    "ruta": "/productos",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cantidadElementos": 5 }
+  },
+  {
+    "descripcion": "Listar productos con stock menor o igual a 50",
+    "metodo": "GET",
+    "ruta": "/productos?stock_max=50",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cantidadElementos": 2 }
+  },
+  {
+    "descripcion": "Filtro stock_max con un valor no numérico",
+    "metodo": "GET",
+    "ruta": "/productos?stock_max=abc",
+    "cuerpo": null,
+    "respuestaEsperada": {
+      "codigo": 400,
+      "cuerpoEsperado": { "error": "El parámetro stock_max debe ser un número entero mayor o igual a 0" }
+    }
+  },
+  {
+    "descripcion": "Resumen de productos por proveedor (COUNT, AVG, SUM)",
+    "metodo": "GET",
+    "ruta": "/productos/resumen",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cantidadElementos": 3 }
+  },
+  {
+    "descripcion": "Obtener un producto existente",
+    "metodo": "GET",
+    "ruta": "/productos/1",
+    "cuerpo": null,
+    "respuestaEsperada": {
+      "codigo": 200,
+      "cuerpoEsperado": {
+        "id": 1,
+        "nombre": "Gaseosa cola 2 L",
+        "precio": "1850.50",
+        "stock": 120,
+        "id_proveedor": 3,
+        "proveedor": "Bebidas del Sur"
+      }
+    }
+  },
+  {
+    "descripcion": "Obtener un producto que no existe",
+    "metodo": "GET",
+    "ruta": "/productos/9999",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Producto no encontrado" } }
+  },
+  {
+    "descripcion": "Obtener un producto con un id no numérico",
+    "metodo": "GET",
+    "ruta": "/productos/abc",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "El id debe ser un número entero positivo" } }
+  },
+  {
+    "descripcion": "Crear un producto válido",
+    "metodo": "POST",
+    "ruta": "/productos",
+    "cuerpo": { "nombre": "Yerba 1 kg", "precio": 3200, "stock": 60, "id_proveedor": 2 },
+    "respuestaEsperada": { "codigo": 201, "cuerpoEsperado": { "mensaje": "Producto creado con éxito", "id": 6 } }
+  },
+  {
+    "descripcion": "Crear un producto con un proveedor inexistente",
+    "metodo": "POST",
+    "ruta": "/productos",
+    "cuerpo": { "nombre": "Yerba 1 kg", "precio": 3200, "stock": 60, "id_proveedor": 99 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "Referencia inválida: el registro relacionado no existe" } }
+  },
+  {
+    "descripcion": "Crear un producto sin los campos obligatorios",
+    "metodo": "POST",
+    "ruta": "/productos",
+    "cuerpo": { "precio": 3200 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "Faltan campos obligatorios: nombre, precio, stock e id_proveedor" } }
+  },
+  {
+    "descripcion": "Crear un producto con precio negativo",
+    "metodo": "POST",
+    "ruta": "/productos",
+    "cuerpo": { "nombre": "Yerba 1 kg", "precio": -5, "stock": 1, "id_proveedor": 1 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "El precio debe ser un número positivo" } }
+  },
+  {
+    "descripcion": "Modificar un producto existente",
+    "metodo": "PUT",
+    "ruta": "/productos/6",
+    "cuerpo": { "nombre": "Yerba 500 g", "precio": 1800, "stock": 30, "id_proveedor": 2 },
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "mensaje": "Producto actualizado con éxito" } }
+  },
+  {
+    "descripcion": "Modificar un producto que no existe",
+    "metodo": "PUT",
+    "ruta": "/productos/9999",
+    "cuerpo": { "nombre": "Yerba 500 g", "precio": 1800, "stock": 30, "id_proveedor": 2 },
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Producto no encontrado" } }
+  },
+  {
+    "descripcion": "Modificar un producto enviando datos incompletos",
+    "metodo": "PUT",
+    "ruta": "/productos/6",
+    "cuerpo": { "nombre": "Yerba 500 g" },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "Faltan campos obligatorios: nombre, precio, stock e id_proveedor" } }
+  },
+  {
+    "descripcion": "Eliminar un producto que figura en pedidos (RESTRICT)",
+    "metodo": "DELETE",
+    "ruta": "/productos/1",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "No se puede eliminar: existen registros asociados" } }
+  },
+  {
+    "descripcion": "Eliminar un producto sin pedidos",
+    "metodo": "DELETE",
+    "ruta": "/productos/6",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "mensaje": "Producto eliminado con éxito" } }
+  },
+  {
+    "descripcion": "Eliminar un producto que ya no existe",
+    "metodo": "DELETE",
+    "ruta": "/productos/6",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Producto no encontrado" } }
+  },
+  {
+    "descripcion": "Listar todos los pedidos con cliente, empleado y compañía de envío",
+    "metodo": "GET",
+    "ruta": "/pedidos",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cantidadElementos": 4 }
+  },
+  {
+    "descripcion": "Filtrar pedidos por estado",
+    "metodo": "GET",
+    "ruta": "/pedidos?estado=pendiente",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cantidadElementos": 2 }
+  },
+  {
+    "descripcion": "Filtrar pedidos por un estado inválido",
+    "metodo": "GET",
+    "ruta": "/pedidos?estado=xyz",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "El estado debe ser uno de: pendiente, enviado, entregado" } }
+  },
+  {
+    "descripcion": "Filtrar pedidos por fecha",
+    "metodo": "GET",
+    "ruta": "/pedidos?fecha=2026-10-02",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cantidadElementos": 1 }
+  },
+  {
+    "descripcion": "Filtrar pedidos por una fecha inexistente",
+    "metodo": "GET",
+    "ruta": "/pedidos?fecha=2026-02-30",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "La fecha debe ser válida y tener formato AAAA-MM-DD" } }
+  },
+  {
+    "descripcion": "Obtener un pedido existente",
+    "metodo": "GET",
+    "ruta": "/pedidos/1",
+    "cuerpo": null,
+    "respuestaEsperada": {
+      "codigo": 200,
+      "cuerpoEsperado": {
+        "id": 1,
+        "fecha": "2026-10-01",
+        "estado": "pendiente",
+        "id_cliente": 1,
+        "cliente": "Kiosco Don Pepe",
+        "id_empleado": 1,
+        "empleado": "Laura Gomez",
+        "id_compania_envio": 1,
+        "compania_envio": "Envios Rapidos"
+      }
+    }
+  },
+  {
+    "descripcion": "Obtener un pedido que no existe",
+    "metodo": "GET",
+    "ruta": "/pedidos/9999",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Pedido no encontrado" } }
+  },
+  {
+    "descripcion": "Obtener un pedido con un id no numérico",
+    "metodo": "GET",
+    "ruta": "/pedidos/abc",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "El id debe ser un número entero positivo" } }
+  },
+  {
+    "descripcion": "Crear un pedido válido (el estado queda en pendiente)",
+    "metodo": "POST",
+    "ruta": "/pedidos",
+    "cuerpo": { "fecha": "2026-10-10", "id_cliente": 1, "id_empleado": 1, "id_compania_envio": 1 },
+    "respuestaEsperada": { "codigo": 201, "cuerpoEsperado": { "mensaje": "Pedido creado con éxito", "id": 5 } }
+  },
+  {
+    "descripcion": "Crear un pedido con un estado inválido",
+    "metodo": "POST",
+    "ruta": "/pedidos",
+    "cuerpo": { "fecha": "2026-10-10", "estado": "raro", "id_cliente": 1, "id_empleado": 1, "id_compania_envio": 1 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "El estado debe ser uno de: pendiente, enviado, entregado" } }
+  },
+  {
+    "descripcion": "Crear un pedido con un cliente inexistente",
+    "metodo": "POST",
+    "ruta": "/pedidos",
+    "cuerpo": { "fecha": "2026-10-10", "id_cliente": 99, "id_empleado": 1, "id_compania_envio": 1 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "Referencia inválida: el registro relacionado no existe" } }
+  },
+  {
+    "descripcion": "Crear un pedido con una fecha en formato incorrecto",
+    "metodo": "POST",
+    "ruta": "/pedidos",
+    "cuerpo": { "fecha": "10/10/2026", "id_cliente": 1, "id_empleado": 1, "id_compania_envio": 1 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "La fecha debe ser válida y tener formato AAAA-MM-DD" } }
+  },
+  {
+    "descripcion": "Modificar un pedido existente",
+    "metodo": "PUT",
+    "ruta": "/pedidos/5",
+    "cuerpo": { "fecha": "2026-10-11", "estado": "enviado", "id_cliente": 2, "id_empleado": 1, "id_compania_envio": 2 },
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "mensaje": "Pedido actualizado con éxito" } }
+  },
+  {
+    "descripcion": "Modificar un pedido sin enviar el estado",
+    "metodo": "PUT",
+    "ruta": "/pedidos/5",
+    "cuerpo": { "fecha": "2026-10-11", "id_cliente": 2, "id_empleado": 1, "id_compania_envio": 2 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "Faltan campos obligatorios: fecha, estado, id_cliente, id_empleado e id_compania_envio" } }
+  },
+  {
+    "descripcion": "Modificar un pedido que no existe",
+    "metodo": "PUT",
+    "ruta": "/pedidos/9999",
+    "cuerpo": { "fecha": "2026-10-11", "estado": "enviado", "id_cliente": 2, "id_empleado": 1, "id_compania_envio": 2 },
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Pedido no encontrado" } }
+  },
+  {
+    "descripcion": "Listar las líneas de detalle de un pedido",
+    "metodo": "GET",
+    "ruta": "/pedidos/1/detalle",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cantidadElementos": 2 }
+  },
+  {
+    "descripcion": "Listar el detalle de un pedido que no existe",
+    "metodo": "GET",
+    "ruta": "/pedidos/9999/detalle",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Pedido no encontrado" } }
+  },
+  {
+    "descripcion": "Calcular el total de un pedido (SUM de cantidad por precio unitario)",
+    "metodo": "GET",
+    "ruta": "/pedidos/1/total",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "id_pedido": 1, "total": "24505.00" } }
+  },
+  {
+    "descripcion": "Calcular el total de un pedido sin líneas",
+    "metodo": "GET",
+    "ruta": "/pedidos/5/total",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "id_pedido": 5, "total": "0.00" } }
+  },
+  {
+    "descripcion": "Calcular el total de un pedido que no existe",
+    "metodo": "GET",
+    "ruta": "/pedidos/9999/total",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Pedido no encontrado" } }
+  },
+  {
+    "descripcion": "Agregar una línea al pedido",
+    "metodo": "POST",
+    "ruta": "/pedidos/5/detalle",
+    "cuerpo": { "id_producto": 2, "cantidad": 3, "precio_unitario": 900 },
+    "respuestaEsperada": { "codigo": 201, "cuerpoEsperado": { "mensaje": "Línea agregada al pedido con éxito" } }
+  },
+  {
+    "descripcion": "Agregar un producto que ya figura en el pedido (clave primaria compuesta)",
+    "metodo": "POST",
+    "ruta": "/pedidos/5/detalle",
+    "cuerpo": { "id_producto": 2, "cantidad": 3, "precio_unitario": 900 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "El registro ya existe" } }
+  },
+  {
+    "descripcion": "Agregar una línea con un producto inexistente",
+    "metodo": "POST",
+    "ruta": "/pedidos/5/detalle",
+    "cuerpo": { "id_producto": 99, "cantidad": 3, "precio_unitario": 900 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "Referencia inválida: el registro relacionado no existe" } }
+  },
+  {
+    "descripcion": "Agregar una línea con cantidad cero",
+    "metodo": "POST",
+    "ruta": "/pedidos/5/detalle",
+    "cuerpo": { "id_producto": 1, "cantidad": 0, "precio_unitario": 900 },
+    "respuestaEsperada": { "codigo": 400, "cuerpoEsperado": { "error": "La cantidad debe ser un número entero positivo" } }
+  },
+  {
+    "descripcion": "Agregar una línea a un pedido que no existe",
+    "metodo": "POST",
+    "ruta": "/pedidos/9999/detalle",
+    "cuerpo": { "id_producto": 1, "cantidad": 1, "precio_unitario": 900 },
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Pedido no encontrado" } }
+  },
+  {
+    "descripcion": "Modificar la cantidad y el precio de una línea",
+    "metodo": "PUT",
+    "ruta": "/pedidos/5/detalle/2",
+    "cuerpo": { "cantidad": 4, "precio_unitario": 950 },
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "mensaje": "Línea del pedido actualizada con éxito" } }
+  },
+  {
+    "descripcion": "Modificar una línea de un producto que no figura en el pedido",
+    "metodo": "PUT",
+    "ruta": "/pedidos/5/detalle/3",
+    "cuerpo": { "cantidad": 4, "precio_unitario": 950 },
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "El producto no figura en el pedido" } }
+  },
+  {
+    "descripcion": "Verificar el total del pedido después de modificar la línea",
+    "metodo": "GET",
+    "ruta": "/pedidos/5/total",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "id_pedido": 5, "total": "3800.00" } }
+  },
+  {
+    "descripcion": "Eliminar una línea del pedido",
+    "metodo": "DELETE",
+    "ruta": "/pedidos/5/detalle/2",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "mensaje": "Línea eliminada del pedido con éxito" } }
+  },
+  {
+    "descripcion": "Eliminar una línea que ya no existe",
+    "metodo": "DELETE",
+    "ruta": "/pedidos/5/detalle/2",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "El producto no figura en el pedido" } }
+  },
+  {
+    "descripcion": "Eliminar un pedido que no existe",
+    "metodo": "DELETE",
+    "ruta": "/pedidos/9999",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 404, "cuerpoEsperado": { "error": "Pedido no encontrado" } }
+  },
+  {
+    "descripcion": "Eliminar un pedido (sus líneas se eliminan en cascada)",
+    "metodo": "DELETE",
+    "ruta": "/pedidos/5",
+    "cuerpo": null,
+    "respuestaEsperada": { "codigo": 200, "cuerpoEsperado": { "mensaje": "Pedido eliminado con éxito" } }
+  }
+]
