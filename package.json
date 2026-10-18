@@ -3,17 +3,25 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.mjs",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.mjs",
-    "start:dev": "nodemon index.mjs"
-  },
+"scripts": {
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "dev": "tsx watch src/index.ts",
+  "build": "tsc",
+  "start": "node dist/index.js",
+  "start:tp4": "node index.mjs"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@prisma/adapter-mariadb": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
     "express": "^5.2.1",
+    "mariadb": "^3.5.4",
+    "morgan": "^1.12.1",
     "mysql2": "^3.24.5"
   },
   "repository": {
@@ -25,6 +33,13 @@
   },
   "homepage": "https://github.com/DanielaAlbera-FS/distribuidora-api#readme",
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^26.6.5",
+    "nodemon": "^3.1.14",
+    "prisma": "^7.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
