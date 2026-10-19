@@ -95,9 +95,3 @@ ALTER TABLE `detalle_pedido` ADD CONSTRAINT `detalle_pedido_id_pedido_fkey` FORE
 
 -- AddForeignKey
 ALTER TABLE `detalle_pedido` ADD CONSTRAINT `detalle_pedido_id_producto_fkey` FOREIGN KEY (`id_producto`) REFERENCES `productos`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddCheckConstraints (a mano: Prisma no soporta CHECK en schema.prisma)
-ALTER TABLE `productos` ADD CONSTRAINT `ck_productos_precio` CHECK (`precio` >= 0);
-ALTER TABLE `productos` ADD CONSTRAINT `ck_productos_stock` CHECK (`stock` >= 0);
-ALTER TABLE `detalle_pedido` ADD CONSTRAINT `ck_detalle_cantidad` CHECK (`cantidad` > 0);
-ALTER TABLE `detalle_pedido` ADD CONSTRAINT `ck_detalle_precio` CHECK (`precio_unitario` >= 0);

@@ -2,9 +2,10 @@
 -- database.sql  (TP N5 - Distribuidora)
 -- Estructura y datos de ejemplo de la base "distribuidora".
 --
--- La estructura se genero con Prisma Migrate a partir de prisma/schema.prisma
--- (migracion prisma/migrations/20261019135355_inicial) y se le agregaron a mano
--- las restricciones CHECK, que Prisma no declara en el schema.
+-- La estructura la genero Prisma Migrate a partir de prisma/schema.prisma
+-- (migracion prisma/migrations/20261019135355_inicial), sin cambios manuales.
+-- Las reglas de valores (precio > 0, stock >= 0, cantidad > 0) se validan
+-- desde el backend, en los controllers.
 --
 -- ATENCION: el script BORRA la base "distribuidora" si ya existe y la crea de nuevo.
 -- Para trabajar con Prisma se usan las migraciones (npx prisma migrate dev);
@@ -109,15 +110,6 @@ ALTER TABLE `pedidos` ADD CONSTRAINT `pedidos_id_empleado_fkey` FOREIGN KEY (`id
 ALTER TABLE `pedidos` ADD CONSTRAINT `pedidos_id_compania_envio_fkey` FOREIGN KEY (`id_compania_envio`) REFERENCES `companias_envio`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE `detalle_pedido` ADD CONSTRAINT `detalle_pedido_id_pedido_fkey` FOREIGN KEY (`id_pedido`) REFERENCES `pedidos`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE `detalle_pedido` ADD CONSTRAINT `detalle_pedido_id_producto_fkey` FOREIGN KEY (`id_producto`) REFERENCES `productos`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
-
--- ---------------------------------------------------------------------
--- RESTRICCIONES CHECK (requieren MariaDB 10.2+ o MySQL 8.0.16+)
--- ---------------------------------------------------------------------
-ALTER TABLE `productos` ADD CONSTRAINT `ck_productos_precio` CHECK (`precio` >= 0);
-ALTER TABLE `productos` ADD CONSTRAINT `ck_productos_stock` CHECK (`stock` >= 0);
-ALTER TABLE `detalle_pedido` ADD CONSTRAINT `ck_detalle_cantidad` CHECK (`cantidad` > 0);
-ALTER TABLE `detalle_pedido` ADD CONSTRAINT `ck_detalle_precio` CHECK (`precio_unitario` >= 0);
 
 
 -- ---------------------------------------------------------------------
