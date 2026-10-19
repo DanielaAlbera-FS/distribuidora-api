@@ -58,6 +58,34 @@ class ProductosModel {
   async eliminar(id: number) {
     return await prisma.producto.delete({ where: { id } });
   }
+
+    // Resumen por proveedor: cantidad de productos, precio promedio y stock total.
+  async obtenerResumenPorProveedor() {
+    // 1) groupBy agrupa los productos por proveedor y calcula COUNT, AVG y SUM en la base.
+    const grupos = await prisma.producto.groupBy({
+      by: ["id_proveedor"],
+      _count: { id: true },
+      _avg: { precio: true },
+      _sum: { stock: true },
+      orderBy: { id_proveedor: "asc" },
+    });
+
+    // 2) groupBy no hace JOIN: traemos aparte los nombres de los proveedores que aparecieron.
+    const proveedores = await prisma.proveedor.findMany({
+      where: { id: { in: grupos.map((g) => g.id_proveedor) } },
+      select: { id: true, nombre: true },
+    });
+    const nombres = new Map<number, string>(proveedores.map((p) => [p.id, p.nombre] as [number, string]));
+
+    // 3) Unimos las dos cosas y damos el mismo formato de salida que TP4.
+    return grupos.map((g) => ({
+      id_proveedor: g.id_proveedor,
+      proveedor: nombres.get(g.id_proveedor) ?? null,
+      cantidad_productos: g._count.id,
+      precio_promedio: g._avg.precio ? g._avg.precio.toFixed(2) : null,
+      stock_total: g._sum.stock ?? 0,
+    }));
+  }
 }
 
 export default new ProductosModel();

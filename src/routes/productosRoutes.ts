@@ -8,6 +8,9 @@ const router = express.Router();
 router.get("/", productosController.consultar);
 router.post("/", productosController.crear);
 
+// Reporte de agregación. Va ANTES de /:id para que "resumen" no se tome como un id.
+router.get("/resumen", productosController.resumen);
+
 // Rutas con parámetro: /productos/:id
 router.route("/:id")
   .get(productosController.consultarDetalle)

@@ -196,6 +196,15 @@ class ProductosController {
       next(error);
     }
   }
+    // GET /productos/resumen
+  async resumen(req: Request, res: Response, next: NextFunction) {
+    try {
+      const filas = await productosModel.obtenerResumenPorProveedor();
+      res.status(200).json({ total_proveedores: filas.length, resumen: filas });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new ProductosController();
