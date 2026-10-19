@@ -1,15 +1,97 @@
-generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+generator client {                                                          // configuración del generador del cliente
+  provider = "prisma-client"                                                // generador de Prisma 7
+  output   = "../src/generated/prisma"                                      // carpeta donde deja el cliente generado
 }
 
-datasource db {
-  provider = "mysql"
+datasource db {                                                             // configuración de la base
+  provider = "mysql"                                                        // motor (sirve también para MariaDB); la URL va en prisma.config.ts
 }
 
-model Proveedor {
-  id        Int    @id @default(autoincrement())
-  nombre    String @db.VarChar(100)
-  CUIL_CUIT String @unique @db.VarChar(20)
-  @@map("proveedores")
+enum EstadoPedido {                                                         // valores permitidos para el estado del pedido
+  pendiente                                                                 // valor inicial
+  enviado                                                                   // el pedido salió
+  entregado                                                                 // el pedido llegó
+}
+
+model Proveedor {                                                           // tabla proveedores
+  id        Int        @id @default(autoincrement())                        // clave primaria autonumérica
+  nombre    String     @db.VarChar(100)                                     // obligatorio
+  telefono  String?    @db.VarChar(20)                                      // opcional
+  email     String     @db.VarChar(100)                                     // obligatorio
+  direccion String?    @db.VarChar(150)                                     // opcional
+  CUIL_CUIT String     @unique(map: "uq_proveedores_cuit") @db.VarChar(20)  // obligatorio y único
+  productos Producto[]                                                      // inversa: sus productos (no es columna)
+
+  @@map("proveedores")                                                      // nombre real de la tabla
+}
+
+model Cliente {                                                             // tabla clientes
+  id        Int      @id @default(autoincrement())                          // clave primaria
+  nombre    String   @db.VarChar(100)                                       // obligatorio
+  telefono  String?  @db.VarChar(20)                                        // opcional
+  email     String   @db.VarChar(100)                                       // obligatorio
+  direccion String?  @db.VarChar(150)                                       // opcional
+  CUIL_CUIT String   @unique(map: "uq_clientes_cuit") @db.VarChar(20)       // obligatorio y único
+  pedidos   Pedido[]                                                        // inversa: sus pedidos
+
+  @@map("clientes")                                                         // nombre real de la tabla
+}
+
+model Empleado {                                                            // tabla empleados
+  id       Int      @id @default(autoincrement())                           // clave primaria
+  nombre   String   @db.VarChar(100)                                        // obligatorio
+  apellido String   @db.VarChar(100)                                        // obligatorio
+  cargo    String?  @db.VarChar(50)                                         // opcional
+  email    String   @unique(map: "uq_empleados_email") @db.VarChar(100)     // obligatorio y único
+  pedidos  Pedido[]                                                         // inversa: los pedidos que gestionó
+
+  @@map("empleados")                                                        // nombre real de la tabla
+}
+
+model CompaniaEnvio {                                                       // tabla companias_envio
+  id       Int      @id @default(autoincrement())                           // clave primaria
+  nombre   String   @db.VarChar(100)                                        // obligatorio
+  telefono String?  @db.VarChar(20)                                         // opcional
+  pedidos  Pedido[]                                                         // inversa: sus pedidos
+
+  @@map("companias_envio")                                                  // nombre real de la tabla
+}
+
+model Producto {                                                            // tabla productos
+  id           Int             @id @default(autoincrement())                // clave primaria
+  nombre       String          @db.VarChar(100)                             // obligatorio
+  precio       Decimal         @db.Decimal(10, 2)                           // el CHECK (precio >= 0) va en la migración
+  stock        Int             @default(0)                                  // el CHECK (stock >= 0) va en la migración
+  id_proveedor Int                                                          // columna real de la clave foránea
+  proveedor    Proveedor       @relation(fields: [id_proveedor], references: [id], onDelete: Restrict) // no se borra un proveedor con productos
+  detalles     DetallePedido[]                                              // inversa: en qué pedidos aparece
+
+  @@map("productos")                                                        // nombre real de la tabla
+}
+
+model Pedido {                                                              // tabla pedidos
+  id                Int             @id @default(autoincrement())           // clave primaria
+  fecha             DateTime        @db.Date                                // solo fecha, sin hora
+  estado            EstadoPedido    @default(pendiente)                     // enum con valor inicial
+  id_cliente        Int                                                     // columna real de la FK a clientes
+  id_empleado       Int                                                     // columna real de la FK a empleados
+  id_compania_envio Int                                                     // columna real de la FK a companias_envio
+  cliente           Cliente         @relation(fields: [id_cliente], references: [id], onDelete: Restrict)            // navegación al cliente
+  empleado          Empleado        @relation(fields: [id_empleado], references: [id], onDelete: Restrict)           // navegación al empleado
+  compania_envio    CompaniaEnvio   @relation(fields: [id_compania_envio], references: [id], onDelete: Restrict)     // navegación a la compañía
+  detalles          DetallePedido[]                                         // inversa: sus líneas de detalle
+
+  @@map("pedidos")                                                          // nombre real de la tabla
+}
+
+model DetallePedido {                                                       // tabla detalle_pedido (entidad asociativa)
+  id_pedido       Int                                                       // parte 1 de la clave primaria; FK a pedidos
+  id_producto     Int                                                       // parte 2 de la clave primaria; FK a productos
+  cantidad        Int                                                       // el CHECK (cantidad > 0) va en la migración
+  precio_unitario Decimal  @db.Decimal(10, 2)                               // precio al momento de la compra
+  pedido          Pedido   @relation(fields: [id_pedido], references: [id], onDelete: Cascade)   // al borrar el pedido se borran sus líneas
+  producto        Producto @relation(fields: [id_producto], references: [id], onDelete: Restrict) // no se borra un producto con ventas
+
+  @@id([id_pedido, id_producto])                                            // clave primaria compuesta
+  @@map("detalle_pedido")                                                   // nombre real de la tabla
 }
