@@ -1,25 +1,32 @@
-import express from "express";                       // framework web, el mismo del TP4
-import cors from "cors";                             // permite pedidos desde otros orígenes
-import morgan from "morgan";                         // imprime un log de cada request
-import { prisma } from "./config/prisma.js";         // la instancia compartida de Prisma
+// Carga las variables del archivo .env antes que cualquier otra cosa.
+import "dotenv/config";
+import express from "express";
+import morgan from "morgan";
+import cors from "cors";
+// Rutas y middlewares de error.
+import productosRoutes from "./routes/productosRoutes.js";
+import { rutaNoEncontrada, manejadorErrores } from "./middlewares/manejadorErrores.js";
 
-const app = express();                               // crea la aplicación
+const app = express();
+const PORT = process.env.PORT ?? 3000;
 
-const PORT = process.env.PORT || 3000;               // puerto del .env, o 3000 si no hay
+// Middlewares generales: log de peticiones, CORS y lectura de JSON en el body.
+app.use(morgan("dev"));
+app.use(cors());
+app.use(express.json());
 
-app.use(morgan("dev"));                              // log de cada request en la consola
-app.use(express.json());                             // permite leer el body JSON de las requests
-app.use(cors());                                     // habilita CORS
-
-app.get("/", (req, res) => {                         // ruta de bienvenida
-  res.send("Hola Mundo");                            // responde texto simple
+// Ruta de prueba.
+app.get("/", (req, res) => {
+  res.send("Hola Mundo");
 });
 
-app.get("/ping-db", async (req, res) => {            // ruta TEMPORAL: comprueba que Prisma llega a la base
-  const total = await prisma.proveedor.count();      // cuenta filas de la tabla proveedores
-  res.json({ proveedores: total });                  // devuelve la cantidad
-});
+// Recursos de la API.
+app.use("/productos", productosRoutes);
 
-app.listen(PORT, () => {                             // levanta el servidor
-  console.log("Servidor activo");                    // aviso en consola
+// El orden importa: primero las rutas inexistentes y, al final, el manejador global de errores.
+app.use(rutaNoEncontrada);
+app.use(manejadorErrores);
+
+app.listen(PORT, () => {
+  console.log(`Servidor activo en http://localhost:${PORT}`);
 });
