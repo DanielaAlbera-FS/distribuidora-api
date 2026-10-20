@@ -1,5 +1,11 @@
 # Dependencias instaladas por npm. Se regeneran con "npm install" a partir del package.json.
 node_modules/
 
-# Archivos de variables de entorno locales (preventivo; el proyecto no los utiliza por ahora).
+# Variables de entorno locales con credenciales (no se suben; la plantilla es .env.example).
 .env
+
+# Salida de la compilacion de TypeScript
+dist
+
+# Cliente de Prisma generado (se regenera con: npx prisma generate)
+/src/generated/prisma
