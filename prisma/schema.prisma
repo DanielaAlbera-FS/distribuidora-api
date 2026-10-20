@@ -60,8 +60,8 @@ model CompaniaEnvio {                                                       // t
 model Producto {                                                            // tabla productos
   id           Int             @id @default(autoincrement())                // clave primaria
   nombre       String          @db.VarChar(100)                             // obligatorio
-  precio       Decimal         @db.Decimal(10, 2)                           // el CHECK (precio >= 0) va en la migración
-  stock        Int             @default(0)                                  // el CHECK (stock >= 0) va en la migración
+  precio       Decimal         @db.Decimal(10, 2)                           // la regla precio > 0 se valida en el controller
+  stock        Int             @default(0)                                  // la regla stock >= 0 se valida en el controller
   id_proveedor Int                                                          // columna real de la clave foránea
   proveedor    Proveedor       @relation(fields: [id_proveedor], references: [id], onDelete: Restrict) // no se borra un proveedor con productos
   detalles     DetallePedido[]                                              // inversa: en qué pedidos aparece
@@ -87,7 +87,7 @@ model Pedido {                                                              // t
 model DetallePedido {                                                       // tabla detalle_pedido (entidad asociativa)
   id_pedido       Int                                                       // parte 1 de la clave primaria; FK a pedidos
   id_producto     Int                                                       // parte 2 de la clave primaria; FK a productos
-  cantidad        Int                                                       // el CHECK (cantidad > 0) va en la migración
+  cantidad        Int                                                       // la regla cantidad >= 1 se valida en el controller
   precio_unitario Decimal  @db.Decimal(10, 2)                               // precio al momento de la compra
   pedido          Pedido   @relation(fields: [id_pedido], references: [id], onDelete: Cascade)   // al borrar el pedido se borran sus líneas
   producto        Producto @relation(fields: [id_producto], references: [id], onDelete: Restrict) // no se borra un producto con ventas
