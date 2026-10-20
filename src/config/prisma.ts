@@ -4,7 +4,7 @@ import mariadb from "mariadb";                               // driver que crea 
 import dotenv from "dotenv";                                 // lector del .env
 
 dotenv.config();                                             // carga las variables del .env en process.env
-
+   
 const pool = mariadb.createPool({                            // crea el Connection Pool (consigna 2.4)
   host: process.env.DB_HOST as string,                       // servidor
   port: Number(process.env.DB_PORT),                         // puerto, convertido de texto a número
@@ -17,3 +17,5 @@ const pool = mariadb.createPool({                            // crea el Connecti
 const adapter = new PrismaMariaDb(pool);                     // envuelve el pool para que Prisma lo use
 
 export const prisma = new PrismaClient({ adapter });         // única instancia de Prisma compartida en toda la app
+
+

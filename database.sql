@@ -2,8 +2,11 @@
 -- database.sql  (TP N5 - Distribuidora)
 -- Estructura y datos de ejemplo de la base "distribuidora".
 --
--- La estructura la genero Prisma Migrate a partir de prisma/schema.prisma
--- (migracion prisma/migrations/20261019135355_inicial), sin cambios manuales.
+-- La estructura equivale a las migraciones de Prisma generadas a partir de
+-- prisma/schema.prisma:
+--   * 20261019135355_inicial     -> tablas, claves y restricciones
+--   * 20261020230000_baja_logica -> columna "activo" en proveedores, clientes
+--                                   y empleados (baja logica en vez de DELETE).
 -- Las reglas de valores (precio > 0, stock >= 0, cantidad > 0) se validan
 -- desde el backend, en los controllers.
 --
@@ -20,7 +23,7 @@ USE distribuidora;
 -- TABLAS
 -- ---------------------------------------------------------------------
 
--- Proveedores: quienes abastecen los productos. CUIL/CUIT unico.
+-- Proveedores: quienes abastecen los productos. CUIL/CUIT unico. activo = baja logica.
 CREATE TABLE `proveedores` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `nombre` VARCHAR(100) NOT NULL,
@@ -28,12 +31,13 @@ CREATE TABLE `proveedores` (
     `email` VARCHAR(100) NOT NULL,
     `direccion` VARCHAR(150) NULL,
     `CUIL_CUIT` VARCHAR(20) NOT NULL,
+    `activo` BOOLEAN NOT NULL DEFAULT true,
 
     UNIQUE INDEX `uq_proveedores_cuit`(`CUIL_CUIT`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Clientes: quienes realizan pedidos. CUIL/CUIT unico.
+-- Clientes: quienes realizan pedidos. CUIL/CUIT unico. activo = baja logica.
 CREATE TABLE `clientes` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `nombre` VARCHAR(100) NOT NULL,
@@ -41,18 +45,20 @@ CREATE TABLE `clientes` (
     `email` VARCHAR(100) NOT NULL,
     `direccion` VARCHAR(150) NULL,
     `CUIL_CUIT` VARCHAR(20) NOT NULL,
+    `activo` BOOLEAN NOT NULL DEFAULT true,
 
     UNIQUE INDEX `uq_clientes_cuit`(`CUIL_CUIT`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Empleados: quienes gestionan los pedidos. Email unico.
+-- Empleados: quienes gestionan los pedidos. Email unico. activo = baja logica.
 CREATE TABLE `empleados` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `nombre` VARCHAR(100) NOT NULL,
     `apellido` VARCHAR(100) NOT NULL,
     `cargo` VARCHAR(50) NULL,
     `email` VARCHAR(100) NOT NULL,
+    `activo` BOOLEAN NOT NULL DEFAULT true,
 
     UNIQUE INDEX `uq_empleados_email`(`email`),
     PRIMARY KEY (`id`)

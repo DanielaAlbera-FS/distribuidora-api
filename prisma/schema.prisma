@@ -1,97 +1,100 @@
-generator client {                                                          // configuración del generador del cliente
-  provider = "prisma-client"                                                // generador de Prisma 7
-  output   = "../src/generated/prisma"                                      // carpeta donde deja el cliente generado
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
-datasource db {                                                             // configuración de la base
-  provider = "mysql"                                                        // motor (sirve también para MariaDB); la URL va en prisma.config.ts
+datasource db {
+  provider = "mysql"
 }
 
-enum EstadoPedido {                                                         // valores permitidos para el estado del pedido
-  pendiente                                                                 // valor inicial
-  enviado                                                                   // el pedido salió
-  entregado                                                                 // el pedido llegó
+enum EstadoPedido {
+  pendiente
+  enviado
+  entregado
 }
 
-model Proveedor {                                                           // tabla proveedores
-  id        Int        @id @default(autoincrement())                        // clave primaria autonumérica
-  nombre    String     @db.VarChar(100)                                     // obligatorio
-  telefono  String?    @db.VarChar(20)                                      // opcional
-  email     String     @db.VarChar(100)                                     // obligatorio
-  direccion String?    @db.VarChar(150)                                     // opcional
-  CUIL_CUIT String     @unique(map: "uq_proveedores_cuit") @db.VarChar(20)  // obligatorio y único
-  productos Producto[]                                                      // inversa: sus productos (no es columna)
+model Proveedor {
+  id        Int        @id @default(autoincrement())
+  nombre    String     @db.VarChar(100)
+  telefono  String?    @db.VarChar(20)
+  email     String     @db.VarChar(100)
+  direccion String?    @db.VarChar(150)
+  CUIL_CUIT String     @unique(map: "uq_proveedores_cuit") @db.VarChar(20)
+  activo    Boolean    @default(true) // <-- Baja lógica agregada
+  productos Producto[]
 
-  @@map("proveedores")                                                      // nombre real de la tabla
+  @@map("proveedores")
 }
 
-model Cliente {                                                             // tabla clientes
-  id        Int      @id @default(autoincrement())                          // clave primaria
-  nombre    String   @db.VarChar(100)                                       // obligatorio
-  telefono  String?  @db.VarChar(20)                                        // opcional
-  email     String   @db.VarChar(100)                                       // obligatorio
-  direccion String?  @db.VarChar(150)                                       // opcional
-  CUIL_CUIT String   @unique(map: "uq_clientes_cuit") @db.VarChar(20)       // obligatorio y único
-  pedidos   Pedido[]                                                        // inversa: sus pedidos
+model Cliente {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @db.VarChar(100)
+  telefono  String?  @db.VarChar(20)
+  email     String   @db.VarChar(100)
+  direccion String?  @db.VarChar(150)
+  CUIL_CUIT String   @unique(map: "uq_clientes_cuit") @db.VarChar(20)
+  activo    Boolean  @default(true) // <-- Baja lógica agregada
+  pedidos   Pedido[]
 
-  @@map("clientes")                                                         // nombre real de la tabla
+  @@map("clientes")
 }
 
-model Empleado {                                                            // tabla empleados
-  id       Int      @id @default(autoincrement())                           // clave primaria
-  nombre   String   @db.VarChar(100)                                        // obligatorio
-  apellido String   @db.VarChar(100)                                        // obligatorio
-  cargo    String?  @db.VarChar(50)                                         // opcional
-  email    String   @unique(map: "uq_empleados_email") @db.VarChar(100)     // obligatorio y único
-  pedidos  Pedido[]                                                         // inversa: los pedidos que gestionó
+model Empleado {
+  id       Int      @id @default(autoincrement())
+  nombre   String   @db.VarChar(100)
+  apellido String   @db.VarChar(100)
+  cargo    String?  @db.VarChar(50)
+  email    String   @unique(map: "uq_empleados_email") @db.VarChar(100)
+  activo   Boolean  @default(true) // <-- Baja lógica agregada
+  pedidos  Pedido[]
 
-  @@map("empleados")                                                        // nombre real de la tabla
+  @@map("empleados")
 }
 
-model CompaniaEnvio {                                                       // tabla companias_envio
-  id       Int      @id @default(autoincrement())                           // clave primaria
-  nombre   String   @db.VarChar(100)                                        // obligatorio
-  telefono String?  @db.VarChar(20)                                         // opcional
-  pedidos  Pedido[]                                                         // inversa: sus pedidos
+model CompaniaEnvio {
+  id       Int      @id @default(autoincrement())
+  nombre   String   @db.VarChar(100)
+  telefono String?  @db.VarChar(20)
+  pedidos  Pedido[]
 
-  @@map("companias_envio")                                                  // nombre real de la tabla
+  @@map("companias_envio")
 }
 
-model Producto {                                                            // tabla productos
-  id           Int             @id @default(autoincrement())                // clave primaria
-  nombre       String          @db.VarChar(100)                             // obligatorio
-  precio       Decimal         @db.Decimal(10, 2)                           // el CHECK (precio >= 0) va en la migración
-  stock        Int             @default(0)                                  // el CHECK (stock >= 0) va en la migración
-  id_proveedor Int                                                          // columna real de la clave foránea
-  proveedor    Proveedor       @relation(fields: [id_proveedor], references: [id], onDelete: Restrict) // no se borra un proveedor con productos
-  detalles     DetallePedido[]                                              // inversa: en qué pedidos aparece
+model Producto {
+  id           Int             @id @default(autoincrement())
+  nombre       String          @db.VarChar(100)
+  precio       Decimal         @db.Decimal(10, 2)
+  stock        Int             @default(0)
+  id_proveedor Int
+  proveedor    Proveedor       @relation(fields: [id_proveedor], references: [id], onDelete: Restrict)
+  detalles     DetallePedido[]
 
-  @@map("productos")                                                        // nombre real de la tabla
+  @@map("productos")
 }
 
-model Pedido {                                                              // tabla pedidos
-  id                Int             @id @default(autoincrement())           // clave primaria
-  fecha             DateTime        @db.Date                                // solo fecha, sin hora
-  estado            EstadoPedido    @default(pendiente)                     // enum con valor inicial
-  id_cliente        Int                                                     // columna real de la FK a clientes
-  id_empleado       Int                                                     // columna real de la FK a empleados
-  id_compania_envio Int                                                     // columna real de la FK a companias_envio
-  cliente           Cliente         @relation(fields: [id_cliente], references: [id], onDelete: Restrict)            // navegación al cliente
-  empleado          Empleado        @relation(fields: [id_empleado], references: [id], onDelete: Restrict)           // navegación al empleado
-  compania_envio    CompaniaEnvio   @relation(fields: [id_compania_envio], references: [id], onDelete: Restrict)     // navegación a la compañía
-  detalles          DetallePedido[]                                         // inversa: sus líneas de detalle
+model Pedido {
+  id                Int             @id @default(autoincrement())
+  fecha             DateTime        @db.Date
+  estado            EstadoPedido    @default(pendiente)
+  id_cliente        Int
+  id_empleado       Int
+  id_compania_envio Int
+  cliente           Cliente         @relation(fields: [id_cliente], references: [id], onDelete: Restrict)
+  empleado          Empleado        @relation(fields: [id_empleado], references: [id], onDelete: Restrict)
+  compania_envio    CompaniaEnvio   @relation(fields: [id_compania_envio], references: [id], onDelete: Restrict)
+  detalles          DetallePedido[]
 
-  @@map("pedidos")                                                          // nombre real de la tabla
+  @@map("pedidos")
 }
 
-model DetallePedido {                                                       // tabla detalle_pedido (entidad asociativa)
-  id_pedido       Int                                                       // parte 1 de la clave primaria; FK a pedidos
-  id_producto     Int                                                       // parte 2 de la clave primaria; FK a productos
-  cantidad        Int                                                       // el CHECK (cantidad > 0) va en la migración
-  precio_unitario Decimal  @db.Decimal(10, 2)                               // precio al momento de la compra
-  pedido          Pedido   @relation(fields: [id_pedido], references: [id], onDelete: Cascade)   // al borrar el pedido se borran sus líneas
-  producto        Producto @relation(fields: [id_producto], references: [id], onDelete: Restrict) // no se borra un producto con ventas
+model DetallePedido {
+  id_pedido       Int
+  id_producto     Int
+  cantidad        Int
+  precio_unitario Decimal  @db.Decimal(10, 2)
+  pedido          Pedido   @relation(fields: [id_pedido], references: [id], onDelete: Cascade)
+  producto        Producto @relation(fields: [id_producto], references: [id], onDelete: Restrict)
 
-  @@id([id_pedido, id_producto])                                            // clave primaria compuesta
-  @@map("detalle_pedido")                                                   // nombre real de la tabla
+  @@id([id_pedido, id_producto])
+  @@map("detalle_pedido")
 }
