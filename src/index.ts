@@ -5,6 +5,7 @@ import morgan from "morgan";
 import cors from "cors";
 // Rutas y middlewares de error.
 import productosRoutes from "./routes/productosRoutes.js";
+import pedidosRoutes from "./routes/pedidosRoutes.js";
 import { rutaNoEncontrada, manejadorErrores } from "./middlewares/manejadorErrores.js";
 
 const app = express();
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 
 // Recursos de la API.
 app.use("/productos", productosRoutes);
+app.use("/pedidos", pedidosRoutes);
 
 // El orden importa: primero las rutas inexistentes y, al final, el manejador global de errores.
 app.use(rutaNoEncontrada);
