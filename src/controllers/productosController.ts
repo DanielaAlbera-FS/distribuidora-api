@@ -1,5 +1,6 @@
-// Controller de productos: valida lo que llega, llama al model y arma la respuesta HTTP.
+// Controller de productos: revisa el resultado de la validación, llama al model y arma la respuesta HTTP.
 import type { Request, Response, NextFunction } from "express";
+import { validationResult, matchedData } from "express-validator";
 import productosModel from "../models/productosModel.js";
 import type { DatosProducto } from "../models/productosModel.js";
 
@@ -28,26 +29,13 @@ const esPrecioValido = (valor: unknown): boolean => {
   return Number.isFinite(numero) && numero > 0 && numero <= MAX_PRECIO;
 };
 
-// Valida el producto completo (POST y PUT). Devuelve el mensaje de error o null si está todo bien.
-const validarProducto = (datos: Cuerpo): string | null => {
-  const { nombre, precio, stock, id_proveedor } = datos;
-
-  if (nombre === undefined || precio === undefined || stock === undefined || id_proveedor === undefined) {
-    return "Faltan campos obligatorios: nombre, precio, stock e id_proveedor";
-  }
-  if (typeof nombre !== "string" || nombre.trim() === "" || nombre.trim().length > 100) {
-    return "El nombre debe ser un texto de 1 a 100 caracteres";
-  }
-  if (!esPrecioValido(precio)) {
-    return "El precio debe ser un número positivo mayor a 0";
-  }
-  if (!esEntero(stock, 0)) {
-    return "El stock debe ser un número entero mayor o igual a 0";
-  }
-  if (!esEntero(id_proveedor, 1)) {
-    return "El id_proveedor debe ser un número entero positivo";
-  }
-  return null;
+// Revisa lo que dejó el checkSchema de la ruta (patrón de la clase: validationResult).
+// Devuelve el cuerpo de la respuesta 400 si hubo errores, o null si todo está bien.
+const errorDeValidacion = (req: Request) => {
+  const resultado = validationResult(req);
+  if (resultado.isEmpty()) return null;
+  const errores = resultado.array();
+  return { error: String(errores[0]?.msg), errores }; // "error" con el primer mensaje, como el resto de la API
 };
 
 // Arma el objeto limpio (texto sin espacios sobrantes, números ya convertidos) para el model.
@@ -62,11 +50,12 @@ class ProductosController {
   // GET /productos?stock_max=N
   async consultar(req: Request, res: Response, next: NextFunction) {
     try {
-      const { stock_max } = req.query;
-
-      if (stock_max !== undefined && !esEntero(stock_max, 0)) {
-        return res.status(400).json({ error: "El parámetro stock_max debe ser un número entero mayor o igual a 0" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+
+      const { stock_max } = req.query;
 
       const stockMax = stock_max === undefined ? undefined : Number(stock_max);
       const filas = await productosModel.obtenerTodos(stockMax); // Ya no hay [filas]: Prisma devuelve el array.
@@ -80,12 +69,13 @@ class ProductosController {
   // GET /productos/:id
   async consultarDetalle(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idProductoValidationSchema
 
-      const producto = await productosModel.obtenerPorId(Number(id));
+      const producto = await productosModel.obtenerPorId(id);
       if (producto === null) { // findUnique devuelve null si no existe.
         return res.status(404).json({ error: "Producto no encontrado" });
       }
@@ -99,12 +89,13 @@ class ProductosController {
   // POST /productos
   async crear(req: Request, res: Response, next: NextFunction) {
     try {
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarProducto(datos);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
 
+      // matchedData devuelve solo los campos del esquema (el nombre ya viene recortado por trim).
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const producto = await productosModel.crear(limpiarProducto(datos)); // create devuelve el producto con su id.
 
       res.status(201).json({ mensaje: "Producto creado con éxito", id: producto.id });
@@ -116,19 +107,16 @@ class ProductosController {
   // PUT /productos/:id
   async actualizar(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
-      }
-
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarProducto(datos);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idProductoValidationSchema
 
-      await productosModel.actualizar(Number(id), limpiarProducto(datos)); // Si el id no existe: P2025 -> 404.
-      const producto = await productosModel.obtenerPorId(Number(id)); // Lo volvemos a leer para devolverlo con el nombre del proveedor.
+      // matchedData devuelve solo los campos del esquema (el nombre ya viene recortado por trim).
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
+      await productosModel.actualizar(id, limpiarProducto(datos)); // Si el id no existe: P2025 -> 404.
+      const producto = await productosModel.obtenerPorId(id); // Lo volvemos a leer para devolverlo con el nombre del proveedor.
 
       res.status(200).json({ mensaje: "Producto actualizado con éxito", producto });
     } catch (error) {
@@ -139,10 +127,11 @@ class ProductosController {
   // PATCH /productos/:id
   async actualizarParte(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idProductoValidationSchema
 
       const campos: Cuerpo = req.body ?? {};
       const camposPermitidos = ["nombre", "precio", "stock", "id_proveedor"];
@@ -172,8 +161,8 @@ class ProductosController {
       if (campos.stock !== undefined) datos.stock = Number(campos.stock);
       if (campos.id_proveedor !== undefined) datos.id_proveedor = Number(campos.id_proveedor);
 
-      await productosModel.actualizarParte(Number(id), datos); // Si el id no existe: P2025 -> 404.
-      const producto = await productosModel.obtenerPorId(Number(id));
+      await productosModel.actualizarParte(id, datos); // Si el id no existe: P2025 -> 404.
+      const producto = await productosModel.obtenerPorId(id);
 
       res.status(200).json({ mensaje: "Producto actualizado parcialmente con éxito", producto });
     } catch (error) {
@@ -184,19 +173,21 @@ class ProductosController {
   // DELETE /productos/:id
   async eliminar(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idProductoValidationSchema
 
-      await productosModel.eliminar(Number(id)); // P2025 si no existe (404), P2003 si tiene detalles asociados (400).
+      await productosModel.eliminar(id); // P2025 si no existe (404), P2003 si tiene detalles asociados (400).
 
       res.status(200).json({ mensaje: "Producto eliminado con éxito" });
     } catch (error) {
       next(error);
     }
   }
-    // GET /productos/resumen
+
+  // GET /productos/resumen
   async resumen(req: Request, res: Response, next: NextFunction) {
     try {
       const filas = await productosModel.obtenerResumenPorProveedor();
