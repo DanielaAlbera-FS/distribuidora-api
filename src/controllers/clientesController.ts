@@ -1,5 +1,6 @@
-// Controller de clientes: valida lo que llega, llama al model y arma la respuesta HTTP.
+// Controller de clientes: revisa el resultado de la validación, llama al model y arma la respuesta HTTP.
 import type { Request, Response, NextFunction } from "express";
+import { validationResult, matchedData } from "express-validator";
 import clientesModel from "../models/clientesModel.js";
 import type { DatosCliente, DatosClienteActualizar } from "../models/clientesModel.js";
 
@@ -17,33 +18,13 @@ const esEmailValido = (valor: unknown): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
 };
 
-// ID de la URL: entero positivo. Devuelve NaN si no es válido.
-const aId = (valor: unknown): number => {
-  if (typeof valor === "string" && /^\d+$/.test(valor)) return Number(valor);
-  return NaN;
-};
-const idValido = (id: number): boolean => Number.isInteger(id) && id > 0 && id <= 2147483647;
-
-// Valida el cliente completo (POST y PUT). Devuelve el mensaje de error o null si está todo bien.
-const validarCliente = (datos: Cuerpo): string | null => {
-  const { nombre, email, CUIL_CUIT } = datos;
-
-  if (!nombre || typeof nombre !== "string" || nombre.trim() === "" || nombre.trim().length > 100) {
-    return "El nombre es obligatorio y debe tener entre 1 y 100 caracteres";
-  }
-  if (!email || !esEmailValido(email) || String(email).trim().length > 100) {
-    return "El email es obligatorio y debe tener un formato válido";
-  }
-  if (!CUIL_CUIT || !esCuitValido(CUIL_CUIT)) {
-    return "El CUIL/CUIT es obligatorio y debe tener 11 números (se admiten guiones)";
-  }
-  if (datos.telefono && String(datos.telefono).trim().length > 20) {
-    return "El teléfono no puede superar los 20 caracteres";
-  }
-  if (datos.direccion && String(datos.direccion).trim().length > 150) {
-    return "La dirección no puede superar los 150 caracteres";
-  }
-  return null;
+// Revisa lo que dejó el checkSchema de la ruta (patrón de la clase: validationResult).
+// Devuelve el cuerpo de la respuesta 400 si hubo errores, o null si todo está bien.
+const errorDeValidacion = (req: Request) => {
+  const resultado = validationResult(req);
+  if (resultado.isEmpty()) return null;
+  const errores = resultado.array();
+  return { error: String(errores[0]?.msg), errores }; // "error" con el primer mensaje, como el resto de la API
 };
 
 // Arma el objeto limpio (texto sin espacios sobrantes) agregando solo las propiedades presentes.
@@ -83,10 +64,11 @@ class ClientesController {
   // GET /clientes/:id
   async consultarDetalle(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       const cliente = await clientesModel.obtenerPorId(id);
       if (cliente === null) {
@@ -102,12 +84,13 @@ class ClientesController {
   // POST /clientes
   async crear(req: Request, res: Response, next: NextFunction) {
     try {
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarCliente(datos);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
 
+      // matchedData devuelve solo los campos del esquema, ya recortados por trim.
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const cliente = await clientesModel.crear(limpiarCliente(datos));
 
       res.status(201).json({ mensaje: "Cliente creado con éxito", id: cliente.id });
@@ -119,17 +102,14 @@ class ClientesController {
   // PUT /clientes/:id
   async actualizar(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
-      }
-
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarCliente(datos);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
+      // matchedData devuelve solo los campos del esquema, ya recortados por trim.
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const cliente = await clientesModel.actualizar(id, limpiarCliente(datos)); // P2025 si no existe -> 404
 
       res.status(200).json({ mensaje: "Cliente actualizado con éxito", cliente });
@@ -141,10 +121,11 @@ class ClientesController {
   // PATCH /clientes/:id
   async actualizarParte(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       const campos: Cuerpo = req.body ?? {};
       const camposPermitidos = ["nombre", "telefono", "email", "direccion", "CUIL_CUIT"];
@@ -184,10 +165,11 @@ class ClientesController {
   // DELETE /clientes/:id
   async eliminar(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       await clientesModel.eliminar(id); // P2025 si no existe (404), P2003 si tiene pedidos (400)
 
