@@ -1,41 +1,28 @@
-// Controller de empleados: valida datos, aplica el modelo y responde HTTP.
+// Controller de empleados: revisa el resultado de la validación, llama al model y arma la respuesta HTTP.
 import type { Request, Response, NextFunction } from "express";
+import { validationResult, matchedData } from "express-validator";
 import empleadosModel from "../models/empleadosModel.js";
 import type { DatosEmpleado, DatosEmpleadoActualizar } from "../models/empleadosModel.js";
 
+// Cuerpo de la petición: llega sin tipo, así que lo tratamos como un objeto cualquiera.
 type Cuerpo = Record<string, any>;
 
+// Se sigue usando en el PATCH, cuyos campos del cuerpo se controlan acá.
 const esEmailValido = (valor: unknown): boolean => {
   if (typeof valor !== "string") return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
 };
 
-const aId = (valor: unknown): number => {
-  if (typeof valor === "string" && /^\d+$/.test(valor)) return Number(valor);
-  return NaN;
-};
-const idValido = (id: number): boolean => Number.isInteger(id) && id > 0 && id <= 2147483647;
-
-// Valida campos obligatorios y sus restricciones de tamaño
-const validarEmpleado = (datos: Cuerpo): string | null => {
-  const { nombre, apellido, email, cargo } = datos;
-
-  if (!nombre || typeof nombre !== "string" || !nombre.trim() || nombre.trim().length > 100) {
-    return "El nombre es obligatorio y debe tener entre 1 y 100 caracteres";
-  }
-  if (!apellido || typeof apellido !== "string" || !apellido.trim() || apellido.trim().length > 100) {
-    return "El apellido es obligatorio y debe tener entre 1 y 100 caracteres";
-  }
-  if (!email || !esEmailValido(email) || String(email).trim().length > 100) {
-    return "El email es obligatorio y debe tener un formato válido";
-  }
-  if (cargo !== undefined && cargo !== null && String(cargo).trim().length > 50) {
-    return "El cargo no puede superar los 50 caracteres";
-  }
-  return null;
+// Revisa lo que dejó el checkSchema de la ruta (patrón de la clase: validationResult).
+// Devuelve el cuerpo de la respuesta 400 si hubo errores, o null si todo está bien.
+const errorDeValidacion = (req: Request) => {
+  const resultado = validationResult(req);
+  if (resultado.isEmpty()) return null;
+  const errores = resultado.array();
+  return { error: String(errores[0]?.msg), errores }; // "error" con el primer mensaje, como el resto de la API
 };
 
-// Saneamiento de datos antes de enviar al modelo
+// Saneamiento de datos antes de enviar al modelo: agrega solo las propiedades presentes.
 const limpiarEmpleado = (datos: Cuerpo): DatosEmpleado => {
   const objetoLimpio: DatosEmpleado = {
     nombre: String(datos.nombre).trim(),
@@ -69,10 +56,11 @@ class EmpleadosController {
   // GET /empleados/:id
   async consultarDetalle(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       const empleado = await empleadosModel.obtenerPorId(id);
       if (!empleado) {
@@ -88,13 +76,15 @@ class EmpleadosController {
   // POST /empleados
   async crear(req: Request, res: Response, next: NextFunction) {
     try {
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarEmpleado(datos);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
 
+      // matchedData devuelve solo los campos del esquema, ya recortados por trim.
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const empleado = await empleadosModel.crear(limpiarEmpleado(datos));
+
       res.status(201).json({ mensaje: "Empleado creado con éxito", id: empleado.id });
     } catch (error) {
       next(error); // El middleware captura P2002 si el email está duplicado
@@ -104,18 +94,16 @@ class EmpleadosController {
   // PUT /empleados/:id
   async actualizar(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
-      }
-
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarEmpleado(datos);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
+      // matchedData devuelve solo los campos del esquema, ya recortados por trim.
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const empleado = await empleadosModel.actualizar(id, limpiarEmpleado(datos));
+
       res.status(200).json({ mensaje: "Empleado actualizado con éxito", empleado });
     } catch (error) {
       next(error);
@@ -125,10 +113,11 @@ class EmpleadosController {
   // PATCH /empleados/:id
   async actualizarParte(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       const campos: Cuerpo = req.body ?? {};
       const camposPermitidos = ["nombre", "apellido", "email", "cargo"];
@@ -138,6 +127,7 @@ class EmpleadosController {
         return res.status(400).json({ error: "No se enviaron campos válidos para actualizar" });
       }
 
+      // Los campos, si llegan, deben seguir siendo válidos.
       if (campos.nombre !== undefined && (typeof campos.nombre !== "string" || !campos.nombre.trim() || campos.nombre.trim().length > 100)) {
         return res.status(400).json({ error: "El nombre debe ser un texto de 1 a 100 caracteres" });
       }
@@ -167,10 +157,11 @@ class EmpleadosController {
   // DELETE /empleados/:id (Baja Lógica)
   async eliminar(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       await empleadosModel.eliminar(id);
       res.status(200).json({ mensaje: "Empleado eliminado con éxito" });
