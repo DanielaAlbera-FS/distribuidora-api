@@ -1,10 +1,10 @@
-// Controller de pedidos y de su detalle: valida lo que llega, llama al model y arma la respuesta HTTP.
+// Controller de pedidos y de su detalle: revisa el resultado de la validación, llama al model y arma la respuesta HTTP.
 import type { Request, Response, NextFunction } from "express";
+import { validationResult, matchedData } from "express-validator";
 import pedidosModel from "../models/pedidosModel.js";
 import type { DatosPedido, EstadoPedido } from "../models/pedidosModel.js";
 
 const MAX_INT = 2147483647; // Tope de un INT de MySQL.
-const MAX_PRECIO = 99999999.99; // Tope de DECIMAL(10,2).
 const ESTADOS_VALIDOS: EstadoPedido[] = ["pendiente", "enviado", "entregado"]; // Los tres estados del enum.
 
 // Cuerpo de la petición: llega sin tipo, así que lo tratamos como un objeto cualquiera.
@@ -21,12 +21,6 @@ const aNumero = (valor: unknown): number => {
 const esEntero = (valor: unknown, minimo: number): boolean => {
   const numero = aNumero(valor);
   return Number.isInteger(numero) && numero >= minimo && numero <= MAX_INT;
-};
-
-// Precio positivo (mayor a 0) y dentro del tope.
-const esPrecioValido = (valor: unknown): boolean => {
-  const numero = aNumero(valor);
-  return Number.isFinite(numero) && numero > 0 && numero <= MAX_PRECIO;
 };
 
 // Fecha AAAA-MM-DD que exista de verdad (rechaza, por ejemplo, 2026-02-31).
@@ -46,66 +40,27 @@ const codigoPrisma = (error: unknown): string | undefined =>
     ? String((error as { code: unknown }).code)
     : undefined;
 
-// Valida el pedido completo (POST y PUT). Devuelve el mensaje de error o null si está todo bien.
-const validarPedido = (datos: Cuerpo, exigirEstado: boolean): string | null => {
-  const { fecha, estado, id_cliente, id_empleado, id_compania_envio } = datos;
-
-  if (
-    fecha === undefined ||
-    id_cliente === undefined ||
-    id_empleado === undefined ||
-    id_compania_envio === undefined ||
-    (exigirEstado && estado === undefined)
-  ) {
-    return "Faltan campos obligatorios: fecha, estado, id_cliente, id_empleado e id_compania_envio";
-  }
-  if (!esFechaValida(fecha)) {
-    return "La fecha debe ser válida y tener formato AAAA-MM-DD";
-  }
-  if (estado !== undefined && !esEstado(estado)) {
-    return `El estado debe ser uno de: ${ESTADOS_VALIDOS.join(", ")}`;
-  }
-  if (!esEntero(id_cliente, 1)) {
-    return "El id_cliente debe ser un número entero positivo";
-  }
-  if (!esEntero(id_empleado, 1)) {
-    return "El id_empleado debe ser un número entero positivo";
-  }
-  if (!esEntero(id_compania_envio, 1)) {
-    return "El id_compania_envio debe ser un número entero positivo";
-  }
-  return null;
-};
-
-// Valida cantidad y precio de una línea de detalle. Estas son las reglas que antes imponían los CHECK de la base.
-const validarCantidadYPrecio = (cantidad: unknown, precioUnitario: unknown): string | null => {
-  if (cantidad === undefined || precioUnitario === undefined) {
-    return "Faltan campos obligatorios: cantidad y precio_unitario";
-  }
-  if (!esEntero(cantidad, 1)) {
-    return "La cantidad debe ser un número entero positivo";
-  }
-  if (!esPrecioValido(precioUnitario)) {
-    return "El precio_unitario debe ser un número positivo";
-  }
-  return null;
+// Revisa lo que dejó el checkSchema de la ruta (patrón de la clase: validationResult).
+// Devuelve el cuerpo de la respuesta 400 si hubo errores, o null si todo está bien.
+const errorDeValidacion = (req: Request) => {
+  const resultado = validationResult(req);
+  if (resultado.isEmpty()) return null;
+  const errores = resultado.array();
+  return { error: String(errores[0]?.msg), errores }; // "error" con el primer mensaje, como el resto de la API
 };
 
 class PedidosController {
   // GET /pedidos?estado=&fecha=
   async consultar(req: Request, res: Response, next: NextFunction) {
     try {
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
+      }
+
+      // El esquema ya comprobó que estado es uno de los tres valores y que fecha es válida.
       const { estado, fecha } = req.query;
-
-      if (estado !== undefined && !esEstado(estado)) {
-        return res.status(400).json({ error: `El estado debe ser uno de: ${ESTADOS_VALIDOS.join(", ")}` });
-      }
-      if (fecha !== undefined && !esFechaValida(fecha)) {
-        return res.status(400).json({ error: "La fecha debe ser válida y tener formato AAAA-MM-DD" });
-      }
-
-      // Después de las validaciones, TypeScript ya sabe que estado es un EstadoPedido y fecha un texto.
-      const filas = await pedidosModel.obtenerTodos(estado, fecha as string | undefined);
+      const filas = await pedidosModel.obtenerTodos(estado as EstadoPedido | undefined, fecha as string | undefined);
 
       res.status(200).json({ total: filas.length, pedidos: filas });
     } catch (error) {
@@ -116,12 +71,13 @@ class PedidosController {
   // GET /pedidos/:id
   async consultarDetalle(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por el esquema
 
-      const pedido = await pedidosModel.obtenerPorId(Number(id));
+      const pedido = await pedidosModel.obtenerPorId(id);
       if (pedido === null) { // findUnique devuelve null si no existe.
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
@@ -135,12 +91,13 @@ class PedidosController {
   // POST /pedidos
   async crear(req: Request, res: Response, next: NextFunction) {
     try {
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarPedido(datos, false);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
 
+      // matchedData devuelve solo los campos del esquema.
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const datosLimpios: DatosPedido = {
         fecha: datos.fecha,
         estado: datos.estado ?? "pendiente", // si no mandan estado, arranca como pendiente
@@ -167,17 +124,14 @@ class PedidosController {
   // PUT /pedidos/:id
   async actualizar(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
-      }
-
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarPedido(datos, true);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por el esquema
 
+      // matchedData devuelve solo los campos del esquema.
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const datosLimpios: DatosPedido = {
         fecha: datos.fecha,
         estado: datos.estado,
@@ -190,8 +144,8 @@ class PedidosController {
           return res.status(400).json({ error: errorBaja });
         }
 
-      await pedidosModel.actualizar(Number(id), datosLimpios); // si el id no existe: P2025
-      const pedido = await pedidosModel.obtenerPorId(Number(id)); // lo releemos para devolverlo con los nombres
+      await pedidosModel.actualizar(id, datosLimpios); // si el id no existe: P2025
+      const pedido = await pedidosModel.obtenerPorId(id); // lo releemos para devolverlo con los nombres
 
       res.status(200).json({ mensaje: "Pedido actualizado con éxito", pedido });
     } catch (error) {
@@ -208,10 +162,11 @@ class PedidosController {
   // PATCH /pedidos/:id
   async actualizarParte(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por el esquema
 
       const campos: Cuerpo = req.body ?? {};
       const camposPermitidos = ["fecha", "estado", "id_cliente", "id_empleado", "id_compania_envio"];
@@ -248,8 +203,8 @@ class PedidosController {
         if (errorBaja) {
           return res.status(400).json({ error: errorBaja });
         }
-      await pedidosModel.actualizarParte(Number(id), datos); // si el id no existe: P2025
-      const pedido = await pedidosModel.obtenerPorId(Number(id));
+      await pedidosModel.actualizarParte(id, datos); // si el id no existe: P2025
+      const pedido = await pedidosModel.obtenerPorId(id);
 
       res.status(200).json({ mensaje: "Pedido actualizado parcialmente con éxito", pedido });
     } catch (error) {
@@ -266,12 +221,13 @@ class PedidosController {
   // DELETE /pedidos/:id
   async eliminar(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por el esquema
 
-      await pedidosModel.eliminar(Number(id)); // sus líneas se borran en cascada; P2025 si no existe
+      await pedidosModel.eliminar(id); // sus líneas se borran en cascada; P2025 si no existe
 
       res.status(200).json({ mensaje: "Pedido eliminado con éxito" });
     } catch (error) {
@@ -285,17 +241,18 @@ class PedidosController {
   // GET /pedidos/:id/total
   async consultarTotal(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
-      if (!(await pedidosModel.existe(Number(id)))) {
+      const id = Number(req.params.id); // ya validado como entero positivo por el esquema
+      if (!(await pedidosModel.existe(id))) {
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
 
-      const total = await pedidosModel.obtenerTotal(Number(id));
+      const total = await pedidosModel.obtenerTotal(id);
 
-      res.status(200).json({ id_pedido: Number(id), total });
+      res.status(200).json({ id_pedido: id, total });
     } catch (error) {
       next(error);
     }
@@ -304,17 +261,18 @@ class PedidosController {
   // GET /pedidos/:id/detalle
   async consultarLineas(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
-      if (!(await pedidosModel.existe(Number(id)))) {
+      const id = Number(req.params.id); // ya validado como entero positivo por el esquema
+      if (!(await pedidosModel.existe(id))) {
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
 
-      const lineas = await pedidosModel.obtenerLineas(Number(id));
+      const lineas = await pedidosModel.obtenerLineas(id);
 
-      res.status(200).json({ id_pedido: Number(id), lineas });
+      res.status(200).json({ id_pedido: id, lineas });
     } catch (error) {
       next(error);
     }
@@ -323,29 +281,20 @@ class PedidosController {
   // POST /pedidos/:id/detalle
   async ingresarLinea(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!esEntero(id, 1)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
-      }
-
-      const { id_producto, cantidad, precio_unitario }: Cuerpo = req.body ?? {};
-      if (id_producto === undefined) {
-        return res.status(400).json({ error: "Faltan campos obligatorios: id_producto, cantidad y precio_unitario" });
-      }
-      if (!esEntero(id_producto, 1)) {
-        return res.status(400).json({ error: "El id_producto debe ser un número entero positivo" });
-      }
-      const errorValidacion = validarCantidadYPrecio(cantidad, precio_unitario);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por el esquema
+
+      const { id_producto, cantidad, precio_unitario }: Cuerpo = matchedData(req, { locations: ["body"] });
 
       // Se comprueba antes que el pedido exista: si no, la clave foránea daría un 400 en lugar del 404.
-      if (!(await pedidosModel.existe(Number(id)))) {
+      if (!(await pedidosModel.existe(id))) {
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
 
-      await pedidosModel.crearLinea(Number(id), Number(id_producto), Number(cantidad), Number(precio_unitario));
+      await pedidosModel.crearLinea(id, Number(id_producto), Number(cantidad), Number(precio_unitario));
 
       res.status(201).json({ mensaje: "Línea agregada al pedido con éxito" });
     } catch (error) {
@@ -362,22 +311,20 @@ class PedidosController {
   // PUT /pedidos/:id/detalle/:id_producto
   async actualizarLinea(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id, id_producto } = req.params;
-      if (!esEntero(id, 1) || !esEntero(id_producto, 1)) {
-        return res.status(400).json({ error: "El ID del pedido y el ID del producto deben ser enteros positivos" });
-      }
-
-      const { cantidad, precio_unitario }: Cuerpo = req.body ?? {};
-      const errorValidacion = validarCantidadYPrecio(cantidad, precio_unitario);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validados como enteros positivos por el esquema
+      const idProducto = Number(req.params.id_producto);
 
-      if (!(await pedidosModel.existe(Number(id)))) {
+      const { cantidad, precio_unitario }: Cuerpo = matchedData(req, { locations: ["body"] });
+
+      if (!(await pedidosModel.existe(id))) {
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
 
-      await pedidosModel.actualizarLinea(Number(id), Number(id_producto), Number(cantidad), Number(precio_unitario));
+      await pedidosModel.actualizarLinea(id, idProducto, Number(cantidad), Number(precio_unitario));
 
       res.status(200).json({ mensaje: "Línea del pedido actualizada con éxito" });
     } catch (error) {
@@ -391,16 +338,18 @@ class PedidosController {
   // DELETE /pedidos/:id/detalle/:id_producto
   async eliminarLinea(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id, id_producto } = req.params;
-      if (!esEntero(id, 1) || !esEntero(id_producto, 1)) {
-        return res.status(400).json({ error: "El ID del pedido y el ID del producto deben ser enteros positivos" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validados como enteros positivos por el esquema
+      const idProducto = Number(req.params.id_producto);
 
-      if (!(await pedidosModel.existe(Number(id)))) {
+      if (!(await pedidosModel.existe(id))) {
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
 
-      await pedidosModel.eliminarLinea(Number(id), Number(id_producto));
+      await pedidosModel.eliminarLinea(id, idProducto);
 
       res.status(200).json({ mensaje: "Línea eliminada del pedido con éxito" });
     } catch (error) {
