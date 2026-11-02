@@ -1,28 +1,22 @@
-// Controller de compañías de envío: valida datos, aplica el modelo y responde HTTP[cite: 1, 5].
+// Controller de compañías de envío: revisa el resultado de la validación, llama al model y arma la respuesta HTTP.
 import type { Request, Response, NextFunction } from "express";
+import { validationResult, matchedData } from "express-validator";
 import companiasEnvioModel from "../models/companiasEnvioModel.js";
 import type { DatosCompaniaEnvio, DatosCompaniaEnvioActualizar } from "../models/companiasEnvioModel.js";
 
+// Cuerpo de la petición: llega sin tipo, así que lo tratamos como un objeto cualquiera.
 type Cuerpo = Record<string, any>;
 
-const aId = (valor: unknown): number => {
-  if (typeof valor === "string" && /^\d+$/.test(valor)) return Number(valor);
-  return NaN;
-};
-const idValido = (id: number): boolean => Number.isInteger(id) && id > 0 && id <= 2147483647;
-
-const validarCompaniaEnvio = (datos: Cuerpo): string | null => {
-  const { nombre, telefono } = datos;
-
-  if (!nombre || typeof nombre !== "string" || !nombre.trim() || nombre.trim().length > 100) {
-    return "El nombre es obligatorio y debe tener entre 1 y 100 caracteres";
-  }
-  if (telefono !== undefined && telefono !== null && String(telefono).trim().length > 20) {
-    return "El teléfono no puede superar los 20 caracteres";
-  }
-  return null;
+// Revisa lo que dejó el checkSchema de la ruta (patrón de la clase: validationResult).
+// Devuelve el cuerpo de la respuesta 400 si hubo errores, o null si todo está bien.
+const errorDeValidacion = (req: Request) => {
+  const resultado = validationResult(req);
+  if (resultado.isEmpty()) return null;
+  const errores = resultado.array();
+  return { error: String(errores[0]?.msg), errores }; // "error" con el primer mensaje, como el resto de la API
 };
 
+// Arma el objeto limpio (texto sin espacios sobrantes) agregando solo las propiedades presentes.
 const limpiarCompaniaEnvio = (datos: Cuerpo): DatosCompaniaEnvio => {
   const objetoLimpio: DatosCompaniaEnvio = {
     nombre: String(datos.nombre).trim(),
@@ -35,7 +29,7 @@ const limpiarCompaniaEnvio = (datos: Cuerpo): DatosCompaniaEnvio => {
 };
 
 class CompaniasEnvioController {
-  // GET /companias-envio?nombre=...
+  // GET /companias_envio?nombre=...
   async consultar(req: Request, res: Response, next: NextFunction) {
     try {
       const { nombre } = req.query;
@@ -51,13 +45,14 @@ class CompaniasEnvioController {
     }
   }
 
-  // GET /companias-envio/:id
+  // GET /companias_envio/:id
   async consultarDetalle(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       const compania = await companiasEnvioModel.obtenerPorId(id);
       if (!compania) {
@@ -70,50 +65,51 @@ class CompaniasEnvioController {
     }
   }
 
-  // POST /companias-envio
+  // POST /companias_envio
   async crear(req: Request, res: Response, next: NextFunction) {
     try {
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarCompaniaEnvio(datos);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
 
+      // matchedData devuelve solo los campos del esquema, ya recortados por trim.
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const compania = await companiasEnvioModel.crear(limpiarCompaniaEnvio(datos));
+
       res.status(201).json({ mensaje: "Compañía de envío creada con éxito", id: compania.id });
     } catch (error) {
       next(error);
     }
   }
 
-  // PUT /companias-envio/:id
+  // PUT /companias_envio/:id
   async actualizar(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
-      }
-
-      const datos: Cuerpo = req.body ?? {};
-      const errorValidacion = validarCompaniaEnvio(datos);
+      const errorValidacion = errorDeValidacion(req);
       if (errorValidacion) {
-        return res.status(400).json({ error: errorValidacion });
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
+      // matchedData devuelve solo los campos del esquema, ya recortados por trim.
+      const datos: Cuerpo = matchedData(req, { locations: ["body"] });
       const compania = await companiasEnvioModel.actualizar(id, limpiarCompaniaEnvio(datos));
+
       res.status(200).json({ mensaje: "Compañía de envío actualizada con éxito", compania });
     } catch (error) {
       next(error);
     }
   }
 
-  // PATCH /companias-envio/:id
+  // PATCH /companias_envio/:id
   async actualizarParte(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       const campos: Cuerpo = req.body ?? {};
       const camposPermitidos = ["nombre", "telefono"];
@@ -123,6 +119,7 @@ class CompaniasEnvioController {
         return res.status(400).json({ error: "No se enviaron campos válidos para actualizar" });
       }
 
+      // Los campos, si llegan, deben seguir siendo válidos.
       if (campos.nombre !== undefined && (typeof campos.nombre !== "string" || !campos.nombre.trim() || campos.nombre.trim().length > 100)) {
         return res.status(400).json({ error: "El nombre debe ser un texto de 1 a 100 caracteres" });
       }
@@ -141,18 +138,19 @@ class CompaniasEnvioController {
     }
   }
 
-  // DELETE /companias-envio/:id
+  // DELETE /companias_envio/:id
   async eliminar(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = aId(req.params.id);
-      if (!idValido(id)) {
-        return res.status(400).json({ error: "El ID debe ser un número entero positivo" });
+      const errorValidacion = errorDeValidacion(req);
+      if (errorValidacion) {
+        return res.status(400).json(errorValidacion);
       }
+      const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
-      await companiasEnvioModel.eliminar(id);
+      await companiasEnvioModel.eliminar(id); // P2025 si no existe (404), P2003 si tiene pedidos asociados (400)
       res.status(200).json({ mensaje: "Compañía de envío eliminada con éxito" });
     } catch (error) {
-      next(error); // P2025 si no existe (404), P2003 si tiene pedidos asociados (400)[cite: 1]
+      next(error);
     }
   }
 }
