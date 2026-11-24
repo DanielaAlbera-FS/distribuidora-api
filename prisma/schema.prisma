@@ -14,39 +14,51 @@ enum EstadoPedido {
 }
 
 model Proveedor {
-  id        Int        @id @default(autoincrement())
-  nombre    String     @db.VarChar(100)
-  telefono  String?    @db.VarChar(20)
-  email     String     @db.VarChar(100)
-  direccion String?    @db.VarChar(150)
-  CUIL_CUIT String     @unique(map: "uq_proveedores_cuit") @db.VarChar(20)
-  activo    Boolean    @default(true) // <-- Baja lógica agregada
-  productos Producto[]
+  id            Int        @id @default(autoincrement())
+  nombre        String     @db.VarChar(100)
+  telefono      String?    @db.VarChar(20)
+  email         String     @db.VarChar(100)
+  direccion     String?    @db.VarChar(150)
+  localidad     String?    @db.VarChar(100) // NUEVO
+  provincia     String?    @db.VarChar(100) // NUEVO
+  codigo_postal String?    @db.VarChar(10) // NUEVO
+  CUIL_CUIT     String     @unique(map: "uq_proveedores_cuit") @db.VarChar(20)
+  fecha_alta    DateTime   @default(now()) // NUEVO
+  activo        Boolean    @default(true) // <-- Baja lógica agregada
+  productos     Producto[]
 
   @@map("proveedores")
 }
 
 model Cliente {
-  id        Int      @id @default(autoincrement())
-  nombre    String   @db.VarChar(100)
-  telefono  String?  @db.VarChar(20)
-  email     String   @db.VarChar(100)
-  direccion String?  @db.VarChar(150)
-  CUIL_CUIT String   @unique(map: "uq_clientes_cuit") @db.VarChar(20)
-  activo    Boolean  @default(true) // <-- Baja lógica agregada
-  pedidos   Pedido[]
+  id            Int      @id @default(autoincrement())
+  nombre        String   @db.VarChar(100)
+  telefono      String?  @db.VarChar(20)
+  email         String   @db.VarChar(100)
+  direccion     String?  @db.VarChar(150)
+  localidad     String?  @db.VarChar(100) // NUEVO
+  provincia     String?  @db.VarChar(100) // NUEVO
+  codigo_postal String?  @db.VarChar(10) // NUEVO
+  CUIL_CUIT     String   @unique(map: "uq_clientes_cuit") @db.VarChar(20)
+  fecha_alta    DateTime @default(now()) // NUEVO
+  activo        Boolean  @default(true) // <-- Baja lógica agregada
+  pedidos       Pedido[]
 
   @@map("clientes")
 }
 
 model Empleado {
-  id       Int      @id @default(autoincrement())
-  nombre   String   @db.VarChar(100)
-  apellido String   @db.VarChar(100)
-  cargo    String?  @db.VarChar(50)
-  email    String   @unique(map: "uq_empleados_email") @db.VarChar(100)
-  activo   Boolean  @default(true) // <-- Baja lógica agregada
-  pedidos  Pedido[]
+  id               Int       @id @default(autoincrement())
+  nombre           String    @db.VarChar(100)
+  apellido         String    @db.VarChar(100)
+  cargo            String?   @db.VarChar(50)
+  email            String    @unique(map: "uq_empleados_email") @db.VarChar(100)
+  localidad        String?   @db.VarChar(100) // NUEVO
+  provincia        String?   @db.VarChar(100) // NUEVO
+  fecha_nacimiento DateTime? @db.Date // NUEVO
+  fecha_alta       DateTime  @default(now()) // NUEVO
+  activo           Boolean   @default(true) // <-- Baja lógica agregada
+  pedidos          Pedido[]
 
   @@map("empleados")
 }
@@ -55,6 +67,7 @@ model CompaniaEnvio {
   id       Int      @id @default(autoincrement())
   nombre   String   @db.VarChar(100)
   telefono String?  @db.VarChar(20)
+  activo   Boolean  @default(true) // NUEVO: baja lógica
   pedidos  Pedido[]
 
   @@map("companias_envio")
@@ -63,6 +76,7 @@ model CompaniaEnvio {
 model Producto {
   id           Int             @id @default(autoincrement())
   nombre       String          @db.VarChar(100)
+  categoria    String?         @db.VarChar(50) // NUEVO
   precio       Decimal         @db.Decimal(10, 2)
   stock        Int             @default(0)
   id_proveedor Int
