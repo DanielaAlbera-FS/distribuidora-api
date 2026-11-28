@@ -3,7 +3,8 @@ import type { Request, Response, NextFunction } from "express";
 import { validationResult, matchedData } from "express-validator";
 import clientesModel from "../models/clientesModel.js";
 import type { DatosCliente, DatosClienteActualizar } from "../models/clientesModel.js";
-import { esCodigoPostal } from "../utils/clientesValidationSchema.js";
+import { esCodigoPostal, esCondicionIva, CONDICIONES_IVA } from "../utils/clientesValidationSchema.js";
+import type { CondicionIvaCliente } from "../utils/clientesValidationSchema.js";
 
 // Cuerpo de la petición: llega sin tipo, así que lo tratamos como un objeto cualquiera.
 type Cuerpo = Record<string, any>;
@@ -45,6 +46,10 @@ const limpiarCliente = (datos: Cuerpo): DatosCliente => {
       objetoLimpio[campo] = String(valor).trim();
     }
   }
+  // La condición frente al IVA (opcional): el esquema ya comprobó que es uno de los valores permitidos.
+  if (datos.condicion_iva !== undefined && datos.condicion_iva !== null && datos.condicion_iva !== "") {
+    objetoLimpio.condicion_iva = String(datos.condicion_iva).trim() as CondicionIvaCliente;
+  }
   return objetoLimpio;
 };
 
@@ -59,6 +64,10 @@ const esCodigoPostalOpcionalValido = (valor: unknown): boolean =>
 // Texto del PATCH a guardar: null o vacío se guardan como null; si no, el texto recortado.
 const textoONull = (valor: unknown): string | null =>
   valor === null || String(valor).trim() === "" ? null : String(valor).trim();
+
+// Condición IVA opcional del PATCH: null, vacío, o uno de los valores permitidos.
+const esCondicionIvaOpcionalValida = (valor: unknown): boolean =>
+  valor === null || (typeof valor === "string" && (valor.trim() === "" || esCondicionIva(valor)));
 
 class ClientesController {
   // GET /clientes?nombre=texto
@@ -144,7 +153,7 @@ class ClientesController {
       const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       const campos: Cuerpo = req.body ?? {};
-      const camposPermitidos = ["nombre", "telefono", "email", "direccion", "CUIL_CUIT", "localidad", "provincia", "codigo_postal"];
+      const camposPermitidos = ["nombre", "telefono", "email", "direccion", "CUIL_CUIT", "localidad", "provincia", "codigo_postal", "condicion_iva"];
       const keys = Object.keys(campos).filter((key) => camposPermitidos.includes(key));
 
       if (keys.length === 0) {
@@ -170,6 +179,9 @@ class ClientesController {
       if (campos.codigo_postal !== undefined && !esCodigoPostalOpcionalValido(campos.codigo_postal)) {
         return res.status(400).json({ error: "El código postal debe tener 4 números (por ejemplo 8300) o el formato CPA (por ejemplo R8332ABC)" });
       }
+      if (campos.condicion_iva !== undefined && !esCondicionIvaOpcionalValida(campos.condicion_iva)) {
+        return res.status(400).json({ error: `La condición frente al IVA debe ser una de: ${CONDICIONES_IVA.join(", ")}` });
+      }
 
       // En vez de armar un SET con texto (como en TP4), armamos un objeto solo con los campos que llegaron.
       const datos: DatosClienteActualizar = {};
@@ -181,6 +193,7 @@ class ClientesController {
       if (campos.localidad !== undefined) datos.localidad = textoONull(campos.localidad);
       if (campos.provincia !== undefined) datos.provincia = textoONull(campos.provincia);
       if (campos.codigo_postal !== undefined) datos.codigo_postal = textoONull(campos.codigo_postal);
+      if (campos.condicion_iva !== undefined) datos.condicion_iva = textoONull(campos.condicion_iva) as CondicionIvaCliente | null;
 
       const cliente = await clientesModel.actualizarParte(id, datos); // P2025 si no existe -> 404
 
@@ -199,7 +212,7 @@ class ClientesController {
       }
       const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
-      await clientesModel.eliminar(id); // P2003 si tiene pedidos (400), P2025 si no existe (404)
+      await clientesModel.eliminar(id); // baja lógica (activo: false); P2025 si no existe (404)
 
       res.status(200).json({ mensaje: "Cliente eliminado con éxito" });
     } catch (error) {

@@ -10,6 +10,16 @@ const esCuit = (valor: unknown): boolean =>
 export const esCodigoPostal = (valor: unknown): boolean =>
   typeof valor === "string" && /^(\d{4}|[A-Za-z]\d{4}[A-Za-z]{3})$/.test(valor.trim());
 
+// Condición del cliente frente al IVA: los mismos valores que el enum CondicionIva del schema.
+export const CONDICIONES_IVA = ["responsable_inscripto", "monotributista", "exento", "consumidor_final"] as const;
+export type CondicionIvaCliente = (typeof CONDICIONES_IVA)[number];
+
+// Se exporta para que el controller use la misma regla en el PATCH.
+export const esCondicionIva = (valor: unknown): boolean =>
+  typeof valor === "string" && (CONDICIONES_IVA as readonly string[]).includes(valor.trim());
+
+const MSG_CONDICION_IVA = `La condición frente al IVA debe ser una de: ${CONDICIONES_IVA.join(", ")}`;
+
 // El :id de la URL tiene que ser un entero positivo.
 export const idValidationSchema: Schema = {
   id: {
@@ -97,6 +107,17 @@ export const clienteValidationSchema: Schema = {
       // Vacío se admite (se descarta como los demás opcionales); si trae algo, debe ser un código válido.
       options: (valor: unknown) => valor === "" || esCodigoPostal(valor),
       errorMessage: "El código postal debe tener 4 números (por ejemplo 8300) o el formato CPA (por ejemplo R8332ABC)",
+    },
+  },
+  condicion_iva: {
+    in: ["body"],
+    optional: { options: { values: "null" } }, // opcional: si no viene (o viene null) no se valida
+    isString: { errorMessage: MSG_CONDICION_IVA, bail: true },
+    trim: true,
+    custom: {
+      // Vacío se admite (se descarta como los demás opcionales); si trae algo, tiene que ser uno de los valores.
+      options: (valor: unknown) => valor === "" || esCondicionIva(valor),
+      errorMessage: MSG_CONDICION_IVA,
     },
   },
 };
