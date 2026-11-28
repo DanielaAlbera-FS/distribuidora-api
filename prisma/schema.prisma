@@ -13,6 +13,19 @@ enum EstadoPedido {
   entregado
 }
 
+// NUEVO (comprobante): condición del cliente frente al IVA.
+enum CondicionIva {
+  responsable_inscripto
+  monotributista
+  exento
+  consumidor_final
+}
+
+// NUEVO (comprobante): por ahora solo existe la factura tipo A.
+enum TipoComprobante {
+  A
+}
+
 model Proveedor {
   id            Int        @id @default(autoincrement())
   nombre        String     @db.VarChar(100)
@@ -40,6 +53,7 @@ model Cliente {
   provincia     String?  @db.VarChar(100) // NUEVO
   codigo_postal String?  @db.VarChar(10) // NUEVO
   CUIL_CUIT     String   @unique(map: "uq_clientes_cuit") @db.VarChar(20)
+  condicion_iva CondicionIva? // NUEVO (comprobante)
   fecha_alta    DateTime @default(now()) // NUEVO
   activo        Boolean  @default(true) // <-- Baja lógica agregada
   pedidos       Pedido[]
@@ -97,6 +111,7 @@ model Pedido {
   empleado          Empleado        @relation(fields: [id_empleado], references: [id], onDelete: Restrict)
   compania_envio    CompaniaEnvio   @relation(fields: [id_compania_envio], references: [id], onDelete: Restrict)
   detalles          DetallePedido[]
+  comprobante       Comprobante? // NUEVO (comprobante): un pedido tiene como máximo uno
 
   @@map("pedidos")
 }
@@ -111,4 +126,31 @@ model DetallePedido {
 
   @@id([id_pedido, id_producto])
   @@map("detalle_pedido")
+}
+
+// NUEVO (comprobante): factura emitida para un pedido. Un pedido tiene como máximo un comprobante.
+model Comprobante {
+  id            Int             @id @default(autoincrement())
+  id_pedido     Int             @unique
+  tipo          TipoComprobante @default(A)
+  punto_venta   Int
+  numero        Int
+  fecha_emision DateTime        @default(now())
+  pedido        Pedido          @relation(fields: [id_pedido], references: [id], onDelete: Restrict)
+
+  @@unique([tipo, punto_venta, numero], map: "uq_comprobantes_numero")
+  @@map("comprobantes")
+}
+
+// NUEVO (comprobante): datos de la distribuidora (quien emite). Tiene una sola fila, con id = 1.
+model Emisor {
+  id                 Int      @id
+  razon_social       String   @db.VarChar(100)
+  cuit               String   @db.VarChar(20)
+  domicilio          String   @db.VarChar(150)
+  ingresos_brutos    String?  @db.VarChar(20)
+  inicio_actividades DateTime @db.Date
+  punto_venta        Int
+
+  @@map("emisor")
 }

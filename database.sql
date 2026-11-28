@@ -13,6 +13,11 @@
 --                                   localidad, provincia, fecha_nacimiento y
 --                                   fecha_alta en empleados; categoria en
 --                                   productos; "activo" en companias_envio.
+--   * 20261128122451_comprobante_factura_a
+--                                -> condicion_iva en clientes; tablas
+--                                   "comprobantes" (factura tipo A emitida
+--                                   para un pedido) y "emisor" (datos de la
+--                                   distribuidora, una sola fila).
 -- Las reglas de valores (precio > 0, stock >= 0, cantidad > 0) se validan
 -- desde el backend, en los controllers.
 --
@@ -60,6 +65,7 @@ CREATE TABLE `clientes` (
     `fecha_alta` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `localidad` VARCHAR(100) NULL,
     `provincia` VARCHAR(100) NULL,
+    `condicion_iva` ENUM('responsable_inscripto', 'monotributista', 'exento', 'consumidor_final') NULL,
 
     UNIQUE INDEX `uq_clientes_cuit`(`CUIL_CUIT`),
     PRIMARY KEY (`id`)
@@ -126,6 +132,33 @@ CREATE TABLE `detalle_pedido` (
     PRIMARY KEY (`id_pedido`, `id_producto`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- Comprobantes: factura emitida para un pedido (maximo una por pedido). El numero no se repite.
+CREATE TABLE `comprobantes` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `id_pedido` INTEGER NOT NULL,
+    `tipo` ENUM('A') NOT NULL DEFAULT 'A',
+    `punto_venta` INTEGER NOT NULL,
+    `numero` INTEGER NOT NULL,
+    `fecha_emision` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `comprobantes_id_pedido_key`(`id_pedido`),
+    UNIQUE INDEX `uq_comprobantes_numero`(`tipo`, `punto_venta`, `numero`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Emisor: datos de la distribuidora que emite las facturas. Tiene una sola fila (id = 1).
+CREATE TABLE `emisor` (
+    `id` INTEGER NOT NULL,
+    `razon_social` VARCHAR(100) NOT NULL,
+    `cuit` VARCHAR(20) NOT NULL,
+    `domicilio` VARCHAR(150) NOT NULL,
+    `ingresos_brutos` VARCHAR(20) NULL,
+    `inicio_actividades` DATE NOT NULL,
+    `punto_venta` INTEGER NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- ---------------------------------------------------------------------
 -- CLAVES FORANEAS (ON DELETE RESTRICT; CASCADE solo en detalle_pedido -> pedidos)
 -- ---------------------------------------------------------------------
@@ -136,6 +169,7 @@ ALTER TABLE `pedidos` ADD CONSTRAINT `pedidos_id_empleado_fkey` FOREIGN KEY (`id
 ALTER TABLE `pedidos` ADD CONSTRAINT `pedidos_id_compania_envio_fkey` FOREIGN KEY (`id_compania_envio`) REFERENCES `companias_envio`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE `detalle_pedido` ADD CONSTRAINT `detalle_pedido_id_pedido_fkey` FOREIGN KEY (`id_pedido`) REFERENCES `pedidos`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE `detalle_pedido` ADD CONSTRAINT `detalle_pedido_id_producto_fkey` FOREIGN KEY (`id_producto`) REFERENCES `productos`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `comprobantes` ADD CONSTRAINT `comprobantes_id_pedido_fkey` FOREIGN KEY (`id_pedido`) REFERENCES `pedidos`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 
 -- ---------------------------------------------------------------------
@@ -146,10 +180,10 @@ INSERT INTO proveedores (nombre, telefono, email, direccion, localidad, provinci
 ('Alimentos del Valle', '2994222222', 'contacto@valle.example', 'Av. Roca 456', 'General Roca', 'Rio Negro', '8332', '30-71234568-2', '2023-06-15'),
 ('Bebidas del Sur', '2994333333', 'info@sur.example', 'Ruta 22 km 10', 'Cipolletti', 'Rio Negro', '8324', '30-71234569-3', '2024-01-20');
 
-INSERT INTO clientes (nombre, telefono, email, direccion, localidad, provincia, codigo_postal, CUIL_CUIT, fecha_alta) VALUES
-('Kiosco Don Pepe', '2994444444', 'pepe@kiosco.example', 'Calle Belgrano 10', 'Neuquen', 'Neuquen', '8300', '20-30123456-4', '2024-03-05'),
-('Almacen La Esquina', '2994555555', 'laesquina@almacen.example', 'Calle Sarmiento 25', 'Cipolletti', 'Rio Negro', '8324', '20-30123457-5', '2024-07-12'),
-('Supermercado Central', '2994666666', 'compras@central.example', 'Av. San Martin 300', 'General Roca', 'Rio Negro', '8332', '30-71234570-6', '2025-02-18');
+INSERT INTO clientes (nombre, telefono, email, direccion, localidad, provincia, codigo_postal, CUIL_CUIT, condicion_iva, fecha_alta) VALUES
+('Kiosco Don Pepe', '2994444444', 'pepe@kiosco.example', 'Calle Belgrano 10', 'Neuquen', 'Neuquen', '8300', '20-30123456-4', 'monotributista', '2024-03-05'),
+('Almacen La Esquina', '2994555555', 'laesquina@almacen.example', 'Calle Sarmiento 25', 'Cipolletti', 'Rio Negro', '8324', '20-30123457-5', 'monotributista', '2024-07-12'),
+('Supermercado Central', '2994666666', 'compras@central.example', 'Av. San Martin 300', 'General Roca', 'Rio Negro', '8332', '30-71234570-6', 'responsable_inscripto', '2025-02-18');
 
 INSERT INTO empleados (nombre, apellido, cargo, email, localidad, provincia, fecha_nacimiento, fecha_alta) VALUES
 ('Laura', 'Gomez', 'Vendedora', 'laura@distribuidora.example', 'Neuquen', 'Neuquen', '1992-04-18', '2022-03-01'),
@@ -181,3 +215,7 @@ INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario) V
 (3, 1, 2, 1850.50),
 (3, 5, 12, 2100.00),
 (4, 3, 8, 1200.00);
+
+-- Emisor de las facturas (datos ficticios). Es la unica fila de la tabla.
+INSERT INTO emisor (id, razon_social, cuit, domicilio, ingresos_brutos, inicio_actividades, punto_venta) VALUES
+(1, 'Distribuidora del Valle S.R.L.', '30-12345678-1', 'Av. Argentina 1234, Neuquen, Neuquen (8300)', '901-123456-7', '2015-03-01', 1);
