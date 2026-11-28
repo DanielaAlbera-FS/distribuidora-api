@@ -147,7 +147,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Distribuidora San Martín S.A.\",\n  \"telefono\": \"011-9999-8888\",\n  \"email\": \"ventas@sanmartin.com\",\n  \"direccion\": \"Av. San Martín 5678\",\n  \"CUIL_CUIT\": \"30-12345678-9\"\n}",
+              "raw": "{\n  \"nombre\": \"Distribuidora San Martín S.A.\",\n  \"telefono\": \"011-9999-8888\",\n  \"email\": \"ventas@sanmartin.com\",\n  \"direccion\": \"Av. San Martín 5678\",\n  \"CUIL_CUIT\": \"30-55667788-1\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -181,7 +181,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Proveedor Fantasma\",\n  \"telefono\": \"123456\"\n}",
+              "raw": "{\n  \"nombre\": \"Proveedor Fantasma\",\n  \"telefono\": \"123456\",\n  \"email\": \"fantasma@proveedor.com\",\n  \"direccion\": \"Calle Inexistente 1\",\n  \"CUIL_CUIT\": \"30-99887766-5\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -459,7 +459,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Supermercado El Trébol\",\n  \"telefono\": \"011-2233-9999\",\n  \"email\": \"super@eltrebol.com\",\n  \"direccion\": \"Av. Siempreviva 742\",\n  \"CUIL_CUIT\": \"20-98765432-1\"\n}",
+              "raw": "{\n  \"nombre\": \"Supermercado El Trébol\",\n  \"telefono\": \"011-2233-9999\",\n  \"email\": \"super@eltrebol.com\",\n  \"direccion\": \"Av. Siempreviva 742\",\n  \"CUIL_CUIT\": \"20-11223344-5\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -590,6 +590,207 @@
               "path": [
                 "clientes",
                 "99"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear cliente con localidad, provincia, código postal y condición IVA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Panadería Los Álamos\",\n  \"telefono\": \"299-4123456\",\n  \"email\": \"alamos@panaderia.example\",\n  \"direccion\": \"Calle Mitre 450\",\n  \"localidad\": \"Cipolletti\",\n  \"provincia\": \"Rio Negro\",\n  \"codigo_postal\": \"8324\",\n  \"CUIL_CUIT\": \"27-28123456-1\",\n  \"condicion_iva\": \"responsable_inscripto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear cliente con condición IVA inválida (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Panadería Los Álamos\",\n  \"telefono\": \"299-4123456\",\n  \"email\": \"otro@panaderia.example\",\n  \"direccion\": \"Calle Mitre 450\",\n  \"localidad\": \"Cipolletti\",\n  \"provincia\": \"Rio Negro\",\n  \"codigo_postal\": \"8324\",\n  \"CUIL_CUIT\": \"27-28123457-2\",\n  \"condicion_iva\": \"inscripto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear cliente con código postal inválido (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Panadería Los Álamos\",\n  \"telefono\": \"299-4123456\",\n  \"email\": \"otro2@panaderia.example\",\n  \"direccion\": \"Calle Mitre 450\",\n  \"localidad\": \"Cipolletti\",\n  \"provincia\": \"Rio Negro\",\n  \"codigo_postal\": \"12\",\n  \"CUIL_CUIT\": \"27-28123458-3\",\n  \"condicion_iva\": \"responsable_inscripto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Modificar Parte cliente: condición IVA (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"condicion_iva\": \"monotributista\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes/5",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes",
+                "5"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Modificar Parte cliente con condición IVA inválida (PATCH Error 400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"condicion_iva\": \"otra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes/5",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes",
+                "5"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Quitar la condición IVA de un cliente (PATCH con null)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"condicion_iva\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes/5",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes",
+                "5"
               ]
             }
           },
@@ -737,7 +938,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Carlos Alberto\",\n  \"apellido\": \"Pérez\",\n  \"cargo\": \"Supervisor de Ventas\",\n  \"email\": \"carlos.perez@empresa.com\"\n}",
+              "raw": "{\n  \"nombre\": \"Carlos Alberto\",\n  \"apellido\": \"Pérez\",\n  \"cargo\": \"Supervisor de Ventas\",\n  \"email\": \"carlos.alberto@empresa.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1072,7 +1273,7 @@
           "response": []
         },
         {
-          "name": "Eliminar compañía (uno de los creados recientemente)",
+          "name": "Baja lógica de compañía (uno de los creados recientemente)",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -1092,9 +1293,29 @@
           "response": []
         },
         {
-          "name": "Eliminar compañía con pedidos asociados (RESTRICT Error 400)",
+          "name": "Baja lógica de compañía con pedidos asociados (200, ya no es RESTRICT)",
           "request": {
             "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/companias_envio/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "companias_envio",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar que la compañía dada de baja ya no aparece (Error 404)",
+          "request": {
+            "method": "GET",
             "header": [],
             "url": {
               "raw": "http://localhost:3000/companias_envio/1",
@@ -1612,6 +1833,106 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Crear producto con categoría",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Yerba mate 500 g\",\n  \"categoria\": \"Almacén\",\n  \"precio\": 2400,\n  \"stock\": 80,\n  \"id_proveedor\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/productos",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "productos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear producto con categoría demasiado larga (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Yerba mate 250 g\",\n  \"categoria\": \"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\",\n  \"precio\": 1500,\n  \"stock\": 40,\n  \"id_proveedor\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/productos",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "productos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Quitar la categoría de un producto (PATCH con null)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoria\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/productos/8",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "productos",
+                "8"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -1809,7 +2130,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fecha\": \"2026-10-10\",\n  \"id_cliente\": 1,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 1\n}",
+              "raw": "{\n  \"fecha\": \"2026-10-10\",\n  \"id_cliente\": 1,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1842,7 +2163,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fecha\": \"2026-10-10\",\n  \"estado\": \"raro\",\n  \"id_cliente\": 1,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 1\n}",
+              "raw": "{\n  \"fecha\": \"2026-10-10\",\n  \"estado\": \"raro\",\n  \"id_cliente\": 1,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1875,7 +2196,40 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fecha\": \"2026-10-10\",\n  \"id_cliente\": 99,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 1\n}",
+              "raw": "{\n  \"fecha\": \"2026-10-10\",\n  \"id_cliente\": 99,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/pedidos",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear pedido con compañía de envío dada de baja (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"2026-10-10\",\n  \"id_cliente\": 1,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1908,7 +2262,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fecha\": \"10/10/2026\",\n  \"id_cliente\": 1,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 1\n}",
+              "raw": "{\n  \"fecha\": \"10/10/2026\",\n  \"id_cliente\": 1,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2517,6 +2871,613 @@
               "path": [
                 "pedidos",
                 "5"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Comprobantes (Factura A)",
+      "item": [
+        {
+          "name": "Emitir factura A de un pedido (201)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar la factura emitida (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura de un pedido que ya tiene comprobante (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar comprobante de un pedido sin factura (Error 404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/2/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "2",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura de un pedido inexistente (Error 404)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/9999/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "9999",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura con ID de pedido no numérico (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/abc/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "abc",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura de un pedido cuyo cliente fue dado de baja (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/4/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "4",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Quitar la condición IVA al cliente del pedido 2 (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"condicion_iva\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes/2",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura a cliente sin condición IVA (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/2/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "2",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente del pedido 2 pasa a consumidor final (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"condicion_iva\": \"consumidor_final\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes/2",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura A a un consumidor final (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/2/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "2",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente del pedido 2 pasa a responsable inscripto (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"condicion_iva\": \"responsable_inscripto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/clientes/2",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "clientes",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura A a un responsable inscripto (201, número siguiente)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/2/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "2",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear un pedido sin líneas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"2026-10-20\",\n  \"id_cliente\": 1,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/pedidos",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura de un pedido sin líneas (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/6/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "6",
+                "comprobante"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar un pedido facturado (Error 400)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar línea a un pedido facturado (Error 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_producto\": 2,\n  \"cantidad\": 1,\n  \"precio_unitario\": 900\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1/detalle",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1",
+                "detalle"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Modificar línea de un pedido facturado (Error 400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 4,\n  \"precio_unitario\": 950\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1/detalle/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1",
+                "detalle",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar línea de un pedido facturado (Error 400)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1/detalle/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1",
+                "detalle",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar el cliente de un pedido facturado (PATCH Error 400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_cliente\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar el cliente de un pedido facturado (PUT Error 400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"2026-10-01\",\n  \"estado\": \"pendiente\",\n  \"id_cliente\": 2,\n  \"id_empleado\": 1,\n  \"id_compania_envio\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar el estado de un pedido facturado (PATCH 200, está permitido)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"enviado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar que la factura no cambió tras los intentos (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/pedidos/1/comprobante",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "pedidos",
+                "1",
+                "comprobante"
               ]
             }
           },
