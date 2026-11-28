@@ -49,7 +49,7 @@ export const stockMaxValidationSchema: Schema = {
   },
 };
 
-// Cuerpo completo del producto (POST y PUT): los cuatro campos son obligatorios.
+// Cuerpo completo del producto (POST y PUT): nombre, precio, stock e id_proveedor son obligatorios; categoria es opcional.
 export const productoValidationSchema: Schema = {
   nombre: {
     in: ["body"],
@@ -83,6 +83,16 @@ export const productoValidationSchema: Schema = {
     custom: {
       options: (valor: unknown) => esEntero(valor, 1),
       errorMessage: "El id_proveedor debe ser un número entero positivo",
+    },
+  },
+  categoria: {
+    in: ["body"],
+    optional: { options: { values: "null" } }, // si no viene (o viene null) no se valida
+    isString: { errorMessage: "La categoría debe ser un texto", bail: true },
+    trim: true,
+    isLength: {
+      options: { max: 50 },
+      errorMessage: "La categoría no puede superar los 50 caracteres",
     },
   },
 };

@@ -39,12 +39,23 @@ const errorDeValidacion = (req: Request) => {
 };
 
 // Arma el objeto limpio (texto sin espacios sobrantes, números ya convertidos) para el model.
-const limpiarProducto = (datos: Cuerpo): DatosProducto => ({
-  nombre: datos.nombre.trim(),
-  precio: Number(datos.precio),
-  stock: Number(datos.stock),
-  id_proveedor: Number(datos.id_proveedor),
-});
+// La categoría (opcional) se agrega solo si llegó con contenido.
+const limpiarProducto = (datos: Cuerpo): DatosProducto => {
+  const objetoLimpio: DatosProducto = {
+    nombre: datos.nombre.trim(),
+    precio: Number(datos.precio),
+    stock: Number(datos.stock),
+    id_proveedor: Number(datos.id_proveedor),
+  };
+  if (datos.categoria !== undefined && datos.categoria !== null && datos.categoria !== "") {
+    objetoLimpio.categoria = String(datos.categoria).trim();
+  }
+  return objetoLimpio;
+};
+
+// Categoría opcional del PATCH: null (para borrarla) o un texto de hasta 50 caracteres.
+const esCategoriaValida = (valor: unknown): boolean =>
+  valor === null || (typeof valor === "string" && valor.trim().length <= 50);
 
 class ProductosController {
   // GET /productos?stock_max=N
@@ -134,7 +145,7 @@ class ProductosController {
       const id = Number(req.params.id); // ya validado como entero positivo por idProductoValidationSchema
 
       const campos: Cuerpo = req.body ?? {};
-      const camposPermitidos = ["nombre", "precio", "stock", "id_proveedor"];
+      const camposPermitidos = ["nombre", "precio", "stock", "id_proveedor", "categoria"];
       const keys = Object.keys(campos).filter((key) => camposPermitidos.includes(key));
 
       if (keys.length === 0) {
@@ -153,6 +164,9 @@ class ProductosController {
       if (campos.id_proveedor !== undefined && !esEntero(campos.id_proveedor, 1)) {
         return res.status(400).json({ error: "El id_proveedor debe ser un número entero positivo" });
       }
+      if (campos.categoria !== undefined && !esCategoriaValida(campos.categoria)) {
+        return res.status(400).json({ error: "La categoría debe ser un texto de hasta 50 caracteres" });
+      }
 
       // En vez de armar un SET con texto (como en TP4), armamos un objeto solo con los campos que llegaron.
       const datos: Partial<DatosProducto> = {};
@@ -160,6 +174,10 @@ class ProductosController {
       if (campos.precio !== undefined) datos.precio = Number(campos.precio);
       if (campos.stock !== undefined) datos.stock = Number(campos.stock);
       if (campos.id_proveedor !== undefined) datos.id_proveedor = Number(campos.id_proveedor);
+      if (campos.categoria !== undefined) {
+        // null o vacío se guardan como null; si no, el texto recortado.
+        datos.categoria = campos.categoria === null || String(campos.categoria).trim() === "" ? null : String(campos.categoria).trim();
+      }
 
       await productosModel.actualizarParte(id, datos); // Si el id no existe: P2025 -> 404.
       const producto = await productosModel.obtenerPorId(id);

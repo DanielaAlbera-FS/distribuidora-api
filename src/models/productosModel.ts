@@ -7,6 +7,7 @@ export interface DatosProducto {
   id_proveedor: number;
   precio: number;
   stock: number;
+  categoria?: string | null; // opcional: null borra la categoría
 }
 
 // include = el JOIN con proveedores: traemos solo el nombre del proveedor.
