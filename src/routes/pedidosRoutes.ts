@@ -2,6 +2,7 @@
 import express from "express";
 import { checkSchema } from "express-validator";
 import pedidosController from "../controllers/pedidosController.js";
+import comprobantesController from "../controllers/comprobantesController.js";
 import {
   consultaPedidosValidationSchema,
   idLineaValidationSchema,
@@ -20,6 +21,10 @@ router.post("/", checkSchema(pedidoValidationSchema, ["body"]), pedidosControlle
 
 // Total de un pedido. Tiene más segmentos que /:id, así que no se confunde con él.
 router.get("/:id/total", checkSchema(idPedidoValidationSchema, ["params"]), pedidosController.consultarTotal);
+
+// Comprobante (factura A) de un pedido: se emite con POST y se consulta con GET.
+router.get("/:id/comprobante", checkSchema(idPedidoValidationSchema, ["params"]), comprobantesController.consultar);
+router.post("/:id/comprobante", checkSchema(idPedidoValidationSchema, ["params"]), comprobantesController.emitir);
 
 // Rutas con parámetro: /pedidos/:id
 router.route("/:id")

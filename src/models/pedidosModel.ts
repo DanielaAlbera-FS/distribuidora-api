@@ -94,7 +94,21 @@ class PedidosModel {
     return null;
   }
 
-  
+  // Indica si el pedido ya tiene un comprobante (factura) emitido.
+  async tieneComprobante(idPedido: number) {
+    const fila = await prisma.comprobante.findUnique({ where: { id_pedido: idPedido }, select: { id: true } });
+    return fila !== null;
+  }
+
+  // Indica si el pedido ya tiene comprobante y el cambio de cliente pedido lo modificaría.
+  async cambiaClienteConComprobante(idPedido: number, nuevoIdCliente: number) {
+    const fila = await prisma.comprobante.findUnique({
+      where: { id_pedido: idPedido },
+      select: { pedido: { select: { id_cliente: true } } },
+    });
+    return fila !== null && fila.pedido.id_cliente !== nuevoIdCliente;
+  }
+
   // Inserta un pedido nuevo y devuelve la fila creada (el controller usa su id).
   async crear(datos: DatosPedido) {
     return await prisma.pedido.create({

@@ -7,6 +7,11 @@ import type { DatosPedido, EstadoPedido } from "../models/pedidosModel.js";
 const MAX_INT = 2147483647; // Tope de un INT de MySQL.
 const ESTADOS_VALIDOS: EstadoPedido[] = ["pendiente", "enviado", "entregado"]; // Los tres estados del enum.
 
+// Mensajes cuando el pedido ya tiene un comprobante emitido: una factura emitida no se modifica.
+const MSG_CAMBIO_CLIENTE = "El pedido ya tiene un comprobante emitido: no se puede cambiar su cliente";
+const MSG_ELIMINAR_PEDIDO = "El pedido tiene un comprobante emitido: no se puede eliminar";
+const MSG_MODIFICAR_LINEAS = "El pedido tiene un comprobante emitido: no se pueden modificar sus líneas";
+
 // Cuerpo de la petición: llega sin tipo, así que lo tratamos como un objeto cualquiera.
 type Cuerpo = Record<string, any>;
 
@@ -144,6 +149,10 @@ class PedidosController {
           return res.status(400).json({ error: errorBaja });
         }
 
+      if (await pedidosModel.cambiaClienteConComprobante(id, datosLimpios.id_cliente)) {
+        return res.status(400).json({ error: MSG_CAMBIO_CLIENTE });
+      }
+
       await pedidosModel.actualizar(id, datosLimpios); // si el id no existe: P2025
       const pedido = await pedidosModel.obtenerPorId(id); // lo releemos para devolverlo con los nombres
 
@@ -203,6 +212,9 @@ class PedidosController {
         if (errorBaja) {
           return res.status(400).json({ error: errorBaja });
         }
+      if (datos.id_cliente !== undefined && (await pedidosModel.cambiaClienteConComprobante(id, datos.id_cliente))) {
+        return res.status(400).json({ error: MSG_CAMBIO_CLIENTE });
+      }
       await pedidosModel.actualizarParte(id, datos); // si el id no existe: P2025
       const pedido = await pedidosModel.obtenerPorId(id);
 
@@ -226,6 +238,10 @@ class PedidosController {
         return res.status(400).json(errorValidacion);
       }
       const id = Number(req.params.id); // ya validado como entero positivo por el esquema
+
+      if (await pedidosModel.tieneComprobante(id)) {
+        return res.status(400).json({ error: MSG_ELIMINAR_PEDIDO });
+      }
 
       await pedidosModel.eliminar(id); // sus líneas se borran en cascada; P2025 si no existe
 
@@ -294,6 +310,10 @@ class PedidosController {
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
 
+      if (await pedidosModel.tieneComprobante(id)) {
+        return res.status(400).json({ error: MSG_MODIFICAR_LINEAS });
+      }
+
       await pedidosModel.crearLinea(id, Number(id_producto), Number(cantidad), Number(precio_unitario));
 
       res.status(201).json({ mensaje: "Línea agregada al pedido con éxito" });
@@ -324,6 +344,10 @@ class PedidosController {
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
 
+      if (await pedidosModel.tieneComprobante(id)) {
+        return res.status(400).json({ error: MSG_MODIFICAR_LINEAS });
+      }
+
       await pedidosModel.actualizarLinea(id, idProducto, Number(cantidad), Number(precio_unitario));
 
       res.status(200).json({ mensaje: "Línea del pedido actualizada con éxito" });
@@ -347,6 +371,10 @@ class PedidosController {
 
       if (!(await pedidosModel.existe(id))) {
         return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+
+      if (await pedidosModel.tieneComprobante(id)) {
+        return res.status(400).json({ error: MSG_MODIFICAR_LINEAS });
       }
 
       await pedidosModel.eliminarLinea(id, idProducto);
