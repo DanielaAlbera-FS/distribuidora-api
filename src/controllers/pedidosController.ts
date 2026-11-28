@@ -106,7 +106,7 @@ class PedidosController {
         id_compania_envio: Number(datos.id_compania_envio),
       };
 
-    const errorBaja = await pedidosModel.verificarActivos(datosLimpios.id_cliente, datosLimpios.id_empleado);
+    const errorBaja = await pedidosModel.verificarActivos(datosLimpios.id_cliente, datosLimpios.id_empleado, datosLimpios.id_compania_envio);
       if (errorBaja) {
         return res.status(400).json({ error: errorBaja });
       }
@@ -139,7 +139,7 @@ class PedidosController {
         id_empleado: Number(datos.id_empleado),
         id_compania_envio: Number(datos.id_compania_envio),
       };
-      const errorBaja = await pedidosModel.verificarActivos(datosLimpios.id_cliente, datosLimpios.id_empleado);
+      const errorBaja = await pedidosModel.verificarActivos(datosLimpios.id_cliente, datosLimpios.id_empleado, datosLimpios.id_compania_envio);
         if (errorBaja) {
           return res.status(400).json({ error: errorBaja });
         }
@@ -199,7 +199,7 @@ class PedidosController {
       if (campos.id_cliente !== undefined) datos.id_cliente = Number(campos.id_cliente);
       if (campos.id_empleado !== undefined) datos.id_empleado = Number(campos.id_empleado);
       if (campos.id_compania_envio !== undefined) datos.id_compania_envio = Number(campos.id_compania_envio);
-      const errorBaja = await pedidosModel.verificarActivos(datos.id_cliente, datos.id_empleado);
+      const errorBaja = await pedidosModel.verificarActivos(datos.id_cliente, datos.id_empleado, datos.id_compania_envio);
         if (errorBaja) {
           return res.status(400).json({ error: errorBaja });
         }

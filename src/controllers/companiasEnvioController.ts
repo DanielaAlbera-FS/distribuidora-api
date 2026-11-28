@@ -147,7 +147,7 @@ class CompaniasEnvioController {
       }
       const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
-      await companiasEnvioModel.eliminar(id); // P2025 si no existe (404), P2003 si tiene pedidos asociados (400)
+      await companiasEnvioModel.eliminar(id); // baja lógica (activo: false); P2025 si no existe (404)
       res.status(200).json({ mensaje: "Compañía de envío eliminada con éxito" });
     } catch (error) {
       next(error);

@@ -1,4 +1,4 @@
-// Model de compañías de envío: ejecuta las consultas a la base de datos mediante Prisma Client[cite: 5].
+// Model de compañías de envío: ejecuta las consultas a la base de datos mediante Prisma Client y maneja la baja lógica (activo: false).
 import { prisma } from "../config/prisma.js";
 import type { Prisma } from "../generated/prisma/client.js";
 
@@ -6,35 +6,32 @@ export type DatosCompaniaEnvio = Prisma.CompaniaEnvioCreateInput;
 export type DatosCompaniaEnvioActualizar = Prisma.CompaniaEnvioUpdateInput;
 
 class CompaniasEnvioModel {
-  // Obtener todas las compañías (opcionalmente filtradas por nombre)
+  // Obtener solo las compañías activas (opcionalmente filtradas por nombre)
   async obtenerTodas(nombre?: string) {
     return await prisma.companiaEnvio.findMany({
-      where: nombre
-        ? {
-            nombre: {
-              contains: nombre,
-            },
-          }
-        : {},
+      where: {
+        activo: true, // Filtro por baja lógica
+        ...(nombre ? { nombre: { contains: nombre } } : {}),
+      },
       orderBy: { id: "asc" },
     });
   }
 
-  // Obtener una compañía por ID[cite: 1]
+  // Obtener una compañía activa por ID (null si no existe o está dada de baja)
   async obtenerPorId(id: number) {
-    return await prisma.companiaEnvio.findUnique({
-      where: { id },
+    return await prisma.companiaEnvio.findFirst({
+      where: { id, activo: true },
     });
   }
 
-  // Crear una nueva compañía de envío[cite: 1]
+  // Crear una nueva compañía de envío
   async crear(datos: DatosCompaniaEnvio) {
     return await prisma.companiaEnvio.create({
       data: datos,
     });
   }
 
-  // Actualización completa (PUT)[cite: 1]
+  // Actualización completa (PUT)
   async actualizar(id: number, datos: DatosCompaniaEnvio) {
     return await prisma.companiaEnvio.update({
       where: { id },
@@ -42,7 +39,7 @@ class CompaniasEnvioModel {
     });
   }
 
-  // Actualización parcial (PATCH)[cite: 1]
+  // Actualización parcial (PATCH)
   async actualizarParte(id: number, datos: DatosCompaniaEnvioActualizar) {
     return await prisma.companiaEnvio.update({
       where: { id },
@@ -50,10 +47,11 @@ class CompaniasEnvioModel {
     });
   }
 
-  // Eliminar una compañía por ID[cite: 1]
+  // Baja lógica (soft delete): cambia el estado activo a false y conserva la fila y sus pedidos
   async eliminar(id: number) {
-    return await prisma.companiaEnvio.delete({
+    return await prisma.companiaEnvio.update({
       where: { id },
+      data: { activo: false },
     });
   }
 }

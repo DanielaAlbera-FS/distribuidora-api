@@ -67,9 +67,9 @@ class PedidosModel {
     return fila !== null;
   }
 
-   // Verifica que el cliente y el empleado existan y no estén dados de baja.
+   // Verifica que el cliente, el empleado y la compañía de envío existan y no estén dados de baja.
   // Devuelve un mensaje de error, o null si está todo bien.
-  async verificarActivos(idCliente?: number, idEmpleado?: number) {
+  async verificarActivos(idCliente?: number, idEmpleado?: number, idCompaniaEnvio?: number) {
     if (idCliente !== undefined) {
       const cliente = await prisma.cliente.findFirst({
         where: { id: idCliente, activo: true },
@@ -83,6 +83,13 @@ class PedidosModel {
         select: { id: true },
       });
       if (empleado === null) return "El empleado no existe o fue dado de baja";
+    }
+    if (idCompaniaEnvio !== undefined) {
+      const compania = await prisma.companiaEnvio.findFirst({
+        where: { id: idCompaniaEnvio, activo: true },
+        select: { id: true },
+      });
+      if (compania === null) return "La compañía de envío no existe o fue dada de baja";
     }
     return null;
   }
