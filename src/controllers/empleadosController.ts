@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from "express";
 import { validationResult, matchedData } from "express-validator";
 import empleadosModel from "../models/empleadosModel.js";
 import type { DatosEmpleado, DatosEmpleadoActualizar } from "../models/empleadosModel.js";
+import { esFechaNacimiento, MSG_FECHA_NACIMIENTO } from "../utils/empleadosValidationSchema.js";
 
 // Cuerpo de la petición: llega sin tipo, así que lo tratamos como un objeto cualquiera.
 type Cuerpo = Record<string, any>;
@@ -22,7 +23,12 @@ const errorDeValidacion = (req: Request) => {
   return { error: String(errores[0]?.msg), errores }; // "error" con el primer mensaje, como el resto de la API
 };
 
+// Campos opcionales del empleado: se agregan al objeto solo si llegaron con contenido.
+// fecha_nacimiento viaja como texto AAAA-MM-DD; el model la convierte a fecha.
+const camposOpcionales = ["cargo", "localidad", "provincia", "fecha_nacimiento"] as const;
+
 // Saneamiento de datos antes de enviar al modelo: agrega solo las propiedades presentes.
+// fecha_alta nunca se toma del cuerpo: la pone la base (DEFAULT CURRENT_TIMESTAMP).
 const limpiarEmpleado = (datos: Cuerpo): DatosEmpleado => {
   const objetoLimpio: DatosEmpleado = {
     nombre: String(datos.nombre).trim(),
@@ -30,11 +36,26 @@ const limpiarEmpleado = (datos: Cuerpo): DatosEmpleado => {
     email: String(datos.email).trim(),
   };
 
-  if (datos.cargo !== undefined && datos.cargo !== null && datos.cargo !== "") {
-    objetoLimpio.cargo = String(datos.cargo).trim();
+  for (const campo of camposOpcionales) {
+    const valor = datos[campo];
+    if (valor !== undefined && valor !== null && valor !== "") {
+      objetoLimpio[campo] = String(valor).trim();
+    }
   }
   return objetoLimpio;
 };
+
+// Texto opcional del PATCH: acepta null (para borrar el dato) o un texto de hasta "max" caracteres.
+const esTextoOpcionalValido = (valor: unknown, max: number): boolean =>
+  valor === null || (typeof valor === "string" && valor.trim().length <= max);
+
+// Fecha de nacimiento opcional del PATCH: null, vacío, o una fecha válida.
+const esFechaNacimientoOpcionalValida = (valor: unknown): boolean =>
+  valor === null || (typeof valor === "string" && (valor.trim() === "" || esFechaNacimiento(valor)));
+
+// Texto del PATCH a guardar: null o vacío se guardan como null; si no, el texto recortado.
+const textoONull = (valor: unknown): string | null =>
+  valor === null || String(valor).trim() === "" ? null : String(valor).trim();
 
 class EmpleadosController {
   // GET /empleados?apellido=...
@@ -120,7 +141,8 @@ class EmpleadosController {
       const id = Number(req.params.id); // ya validado como entero positivo por idValidationSchema
 
       const campos: Cuerpo = req.body ?? {};
-      const camposPermitidos = ["nombre", "apellido", "email", "cargo"];
+      // fecha_alta no está en la lista: si llega en el cuerpo se ignora (la pone la base).
+      const camposPermitidos = ["nombre", "apellido", "email", "cargo", "localidad", "provincia", "fecha_nacimiento"];
       const keys = Object.keys(campos).filter((key) => camposPermitidos.includes(key));
 
       if (keys.length === 0) {
@@ -140,12 +162,24 @@ class EmpleadosController {
       if (campos.cargo !== undefined && campos.cargo !== null && String(campos.cargo).trim().length > 50) {
         return res.status(400).json({ error: "El cargo no puede superar los 50 caracteres" });
       }
+      if (campos.localidad !== undefined && !esTextoOpcionalValido(campos.localidad, 100)) {
+        return res.status(400).json({ error: "La localidad debe ser un texto de hasta 100 caracteres" });
+      }
+      if (campos.provincia !== undefined && !esTextoOpcionalValido(campos.provincia, 100)) {
+        return res.status(400).json({ error: "La provincia debe ser un texto de hasta 100 caracteres" });
+      }
+      if (campos.fecha_nacimiento !== undefined && !esFechaNacimientoOpcionalValida(campos.fecha_nacimiento)) {
+        return res.status(400).json({ error: MSG_FECHA_NACIMIENTO });
+      }
 
       const datos: DatosEmpleadoActualizar = {};
       if (campos.nombre !== undefined) datos.nombre = String(campos.nombre).trim();
       if (campos.apellido !== undefined) datos.apellido = String(campos.apellido).trim();
       if (campos.email !== undefined) datos.email = String(campos.email).trim();
       if (campos.cargo !== undefined) datos.cargo = campos.cargo === null ? null : String(campos.cargo).trim();
+      if (campos.localidad !== undefined) datos.localidad = textoONull(campos.localidad);
+      if (campos.provincia !== undefined) datos.provincia = textoONull(campos.provincia);
+      if (campos.fecha_nacimiento !== undefined) datos.fecha_nacimiento = textoONull(campos.fecha_nacimiento);
 
       const empleado = await empleadosModel.actualizarParte(id, datos);
       res.status(200).json({ mensaje: "Empleado actualizado parcialmente con éxito", empleado });

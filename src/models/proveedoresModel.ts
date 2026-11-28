@@ -1,8 +1,10 @@
 import { prisma } from "../config/prisma.js";
 import type { Prisma } from "../generated/prisma/client.js";
 
-export type DatosProveedor = Prisma.ProveedorCreateInput;
-export type DatosProveedorActualizar = Prisma.ProveedorUpdateInput;
+// Datos que el controller le pasa al model: incluyen localidad, provincia y codigo_postal (opcionales).
+// fecha_alta se quita del tipo a propósito: nunca llega desde la API, la pone la base al crear.
+export type DatosProveedor = Omit<Prisma.ProveedorCreateInput, "fecha_alta" | "activo" | "productos">;
+export type DatosProveedorActualizar = Omit<Prisma.ProveedorUpdateInput, "fecha_alta" | "activo" | "productos">;
 
 class ProveedoresModel {
   async obtenerTodos() {
